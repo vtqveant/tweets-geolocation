@@ -17,18 +17,23 @@ class CharacterEncoder:
     """
 
     def __init__(self, d):
-        self.d = d
+        if d not in [ENCODING_SIZE_SMALL, ENCODING_SIZE_LARGE, ENCODING_SIZE_HUGE]:
+            raise ValueError("Unsupported encoding size")
 
         # targeting Linux, s. https://stackoverflow.com/questions/7291120/get-unicode-code-point-of-a-character-using-python/42262842#42262842
         # s. also https://pypi.org/project/Unidecode/ for unidecode's requirements to support characters outside
         # Basic Multilingual Plane (BMP) (such as bold, italic, script, mathematical notation etc.)
         if sys.maxunicode <= 0xffff:
-            print("WARNING! sys.maxunicode <= 0xffff")
+            print("WARNING: sys.maxunicode <= 0xffff")
+
+        self.d = d
 
     def encode(self, text):
         # 1. normalize the string's representation using Unicode's NFKC normalization strategy.
         # codepoints = [self._get_wide_ordinal(c) for c in unicodedata.normalize('NFKC', text)]
         # print(codepoints)
+
+        rows = []
 
         # 2. loop through each code point in the normalized string and update the corresponding rows in the encoding matrix
         # determine codepoint category, s. http://www.unicode.org/reports/tr44/#General_Category_Values
@@ -39,8 +44,9 @@ class CharacterEncoder:
                 print(character)
                 print('Using 1 row')
 
-                retval = self._encode(category, character)
-                print(retval)
+                row = self._encode(category, character)
+                rows.append(row)
+                print(row)
 
             else:
                 transliterated = unidecode(character).strip().lower()
@@ -49,14 +55,15 @@ class CharacterEncoder:
 
                 flag = True
                 for l in transliterated:
-                    retval = self._encode(category, character, l, flag)
+                    row = self._encode(category, character, l, flag)
                     flag = False
-                    print(retval)
+                    rows.append(row)
+                    print(row)
 
         decoded = [unidecode(c) for c in unicodedata.normalize('NFKC', text)]
         print(decoded)
 
-        return None
+        return rows
 
     def _encode(self, category, character, transliteration=None, is_first_letter=False):
         retval = self._encode_unicode_category(category)  # columns 1-7
