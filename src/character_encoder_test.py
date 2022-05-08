@@ -20,7 +20,11 @@ class CharacterEncoderTest(unittest.TestCase):
         self.assertRaises(ValueError, CharacterEncoder, 10)
 
     def testResultRowSizeEqualsEncodingSize(self):
-        result = self.encoder.encode('a')
+        result = self.encoder.encode('eli eli lamma lamma sabacthani')
+        self.assertEquals(character_encoder.ENCODING_SIZE_SMALL, len(result[0]))
+        result = self.encoder.encode("谢谢你")
+        self.assertEquals(character_encoder.ENCODING_SIZE_SMALL, len(result[0]))
+        result = self.encoder.encode(u'ko\u017eu\u0161\u010dek')
         self.assertEquals(character_encoder.ENCODING_SIZE_SMALL, len(result[0]))
 
     def testLatinRowCountEqualsInputLength(self):
@@ -28,7 +32,7 @@ class CharacterEncoderTest(unittest.TestCase):
         result = self.encoder.encode(text)
         self.assertEquals(len(text), len(result))
 
-    def testMandarinRowCountNotEqualInputLength(self):
+    def testMandarinRowCountNotEqualsInputLength(self):
         text = "谢谢你"
         result = self.encoder.encode(text)
         self.assertNotEquals(len(text), len(result))
@@ -44,10 +48,10 @@ class CharacterEncoderTest(unittest.TestCase):
     def testLatinDiacriticDetected(self):
         result = self.encoder.encode("\u017ea")
         first_row = result[0]
-        diacritic_range = first_row[13:29]
+        diacritic_range = self._getRange(first_row, 14, 29)
         self.assertTrue('1' in diacritic_range)
         second_row = result[1]
-        diacritic_range = second_row[13:29]
+        diacritic_range = self._getRange(second_row, 14, 29)
         self.assertFalse('1' in diacritic_range)
 
     def testNoDiacriticInNonLatin(self):

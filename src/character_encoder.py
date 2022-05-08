@@ -16,6 +16,9 @@ class CharacterEncoder:
     The intended use of this class is to dump the encoded value to a file, so the generated encoding is a string.
     """
 
+    # s. https://planetmath.org/goodhashtableprimes
+    LARGE_PRIME = 98317
+
     def __init__(self, d):
         if d not in [ENCODING_SIZE_SMALL, ENCODING_SIZE_LARGE, ENCODING_SIZE_HUGE]:
             raise ValueError("Unsupported encoding size")
@@ -29,15 +32,11 @@ class CharacterEncoder:
         self.d = d
 
     def encode(self, text):
-        # 1. normalize the string's representation using Unicode's NFKC normalization strategy.
-        # codepoints = [self._get_wide_ordinal(c) for c in unicodedata.normalize('NFKC', text)]
-        # print(codepoints)
-
         rows = []
 
-        # 2. loop through each code point in the normalized string and update the corresponding rows in the encoding matrix
-        # determine codepoint category, s. http://www.unicode.org/reports/tr44/#General_Category_Values
+        # loop through each code point in the normalized string and update the corresponding rows in the encoding matrix
         for character in unicodedata.normalize('NFKC', text):
+            # determine codepoint category, s. http://www.unicode.org/reports/tr44/#General_Category_Values
             category = unicodedata.category(character)
             print(category)
             if not category.startswith('L'):
@@ -83,15 +82,10 @@ class CharacterEncoder:
 
         length = self.d - 60
         if transliteration is None:
-            retval += ''.zfill(length)
+            retval += ''.zfill(length)  # columns 60-d
         else:
             retval += self._encode_non_latin(character, length)  # columns 60-d
         return retval
-
-    @staticmethod
-    def _get_wide_ordinal(c):
-        """s. https://stackoverflow.com/questions/7291120/get-unicode-code-point-of-a-character-using-python/7291240#7291240"""
-        return ord(c) if len(c) != 2 else 0x10000 + (ord(c[0]) - 0xD800) * 0x400 + (ord(c[1]) - 0xDC00)
 
     @staticmethod
     def _encode_unicode_category(category):
@@ -149,7 +143,7 @@ class CharacterEncoder:
 
     @staticmethod
     def _encode_diacritics(character):
-        """encode diacritic marks on characters (a form of feature hashing at the mark level)"""
+        """Encode diacritic marks on a character (a form of feature hashing at the mark level)"""
         zeros = ''.zfill(16)
         decomp = unicodedata.decomposition(character)
         if decomp == "":
@@ -158,8 +152,7 @@ class CharacterEncoder:
             decimals = [int(h, 16) for h in decomp.split(' ')]
             tmp = list(zeros)
             for d in decimals:
-                # s. https://planetmath.org/goodhashtableprimes
-                tmp[(d * 98317) % 16] = '1'
+                tmp[(d * CharacterEncoder.LARGE_PRIME) % 16] = '1'
             return ''.join(tmp)
 
     @staticmethod
@@ -173,7 +166,7 @@ class CharacterEncoder:
     @staticmethod
     def _encode_latin(character):
         """the Latin transliteration of the character"""
-        zeros = '00000000000000000000000000'
+        zeros = ''.zfill(26)
         place = ord(character) - 97  # ord('a') == 97
         if place < 0 or place > 25:
             return zeros
@@ -184,8 +177,8 @@ class CharacterEncoder:
 
     @staticmethod
     def _encode_non_latin(character, length):
-        # s. https://planetmath.org/goodhashtableprimes
-        place = (ord(character) * 98317) % length
+        """Encode a non-Latin character (a form of feature hashing at the character level)"""
+        place = (ord(character) * CharacterEncoder.LARGE_PRIME) % length
         tmp = ['0'] * (length + 1)
         tmp[place] = '1'
         return ''.join(tmp)
