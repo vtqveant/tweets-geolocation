@@ -12,38 +12,37 @@ class CharacterEncoderTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.encoder = None
 
-    def testSmth(self):
-        result = self.encoder.encode('a')
-        print(result)
-
     def testUnsupportedEncodingSizeRaisesValueError(self):
         self.assertRaises(ValueError, CharacterEncoder, 10)
 
+    def testNumRows(self):
+        for text in ['This is English', '谢谢你', u'ko\u017eu\u0161\u010dek', 'Junto a ti!']:
+            result = self.encoder.encode(text)
+            self.assertEquals(character_encoder.NUM_ROWS, len(result))
+
     def testResultRowSizeEqualsEncodingSize(self):
-        result = self.encoder.encode('eli eli lamma lamma sabacthani')
-        self.assertEquals(character_encoder.ENCODING_SIZE_SMALL, len(result[0]))
-        result = self.encoder.encode("谢谢你")
-        self.assertEquals(character_encoder.ENCODING_SIZE_SMALL, len(result[0]))
-        result = self.encoder.encode(u'ko\u017eu\u0161\u010dek')
-        self.assertEquals(character_encoder.ENCODING_SIZE_SMALL, len(result[0]))
+        for text in ['This is English', '谢谢你', u'ko\u017eu\u0161\u010dek', 'Junto a ti!']:
+            result = self.encoder.encode(text)
+            for i in range(len(result)):
+                self.assertEquals(character_encoder.ENCODING_SIZE_SMALL, len(result[i]))
 
     def testLatinRowCountEqualsInputLength(self):
         text = "This is English"
         result = self.encoder.encode(text)
-        self.assertEquals(len(text), len(result))
+        self.assertEquals(len(text), self._countNonPaddingRows(result))
 
     def testMandarinRowCountNotEqualsInputLength(self):
         text = "谢谢你"
         result = self.encoder.encode(text)
-        self.assertNotEquals(len(text), len(result))
+        self.assertNotEquals(len(text), self._countNonPaddingRows(result))
 
     def testMandarinRowCount(self):
         result = self.encoder.encode("谢谢")
-        self.assertEquals(6, len(result))
+        self.assertEquals(6, self._countNonPaddingRows(result))
 
     def testLatinDiacriticIsOneRow(self):
         result = self.encoder.encode("\u017e")
-        self.assertEquals(1, len(result))
+        self.assertEquals(1, self._countNonPaddingRows(result))
 
     def testLatinDiacriticDetected(self):
         result = self.encoder.encode("\u017ea")
@@ -67,6 +66,15 @@ class CharacterEncoderTest(unittest.TestCase):
     def _getRange(row: str, left_index_included: int, right_index_included: int):
         """returns a range for a 1-based indexation, both indices included"""
         return row[left_index_included - 1:right_index_included]
+
+    @staticmethod
+    def _countNonPaddingRows(matrix):
+        """count the number of rows which are not zero-padding rows"""
+        count = 0
+        for row in matrix:
+            if '1' in row:
+                count += 1
+        return count
 
     def testAwkwardRangeHelperFunction(self):
         self.assertEquals('456', self._getRange('123456789', 4, 6))

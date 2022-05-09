@@ -5,6 +5,7 @@ from unidecode import unidecode
 ENCODING_SIZE_SMALL = 128
 ENCODING_SIZE_LARGE = 128
 ENCODING_SIZE_HUGE = 256
+NUM_ROWS = 280
 
 
 class CharacterEncoder:
@@ -38,30 +39,19 @@ class CharacterEncoder:
         for character in unicodedata.normalize('NFKC', text):
             # determine codepoint category, s. http://www.unicode.org/reports/tr44/#General_Category_Values
             category = unicodedata.category(character)
-            print(category)
             if not category.startswith('L'):
-                print(character)
-                print('Using 1 row')
-
                 row = self._encode(category, character)
                 rows.append(row)
-                print(row)
-
             else:
                 transliterated = unidecode(character).strip().lower()
-                print(transliterated)
-                print(f'Using {len(transliterated)} rows')
-
                 flag = True
                 for l in transliterated:
                     row = self._encode(category, character, l, flag)
                     flag = False
                     rows.append(row)
-                    print(row)
 
-        decoded = [unidecode(c) for c in unicodedata.normalize('NFKC', text)]
-        print(decoded)
-
+        padding = [''.zfill(self.d)] * (NUM_ROWS - len(rows))
+        rows.extend(padding)
         return rows
 
     def _encode(self, category, character, transliteration=None, is_first_letter=False):
@@ -80,11 +70,11 @@ class CharacterEncoder:
 
         retval += '1' if is_first_letter else '0'  # column 59
 
-        length = self.d - 60
+        num_buckets = self.d - 60
         if transliteration is None:
-            retval += ''.zfill(length)  # columns 60-d
+            retval += ''.zfill(num_buckets + 1)  # columns 60-d
         else:
-            retval += self._encode_non_latin(character, length)  # columns 60-d
+            retval += self._encode_non_latin(character, num_buckets)  # columns 60-d
         return retval
 
     @staticmethod
@@ -152,7 +142,8 @@ class CharacterEncoder:
             decimals = [int(h, 16) for h in decomp.split(' ')]
             tmp = list(zeros)
             for d in decimals:
-                tmp[(d * CharacterEncoder.LARGE_PRIME) % 16] = '1'
+                place = (d * CharacterEncoder.LARGE_PRIME) % 16
+                tmp[place] = '1'
             return ''.join(tmp)
 
     @staticmethod
@@ -176,10 +167,10 @@ class CharacterEncoder:
             return ''.join(tmp)
 
     @staticmethod
-    def _encode_non_latin(character, length):
+    def _encode_non_latin(character, num_buckets):
         """Encode a non-Latin character (a form of feature hashing at the character level)"""
-        place = (ord(character) * CharacterEncoder.LARGE_PRIME) % length
-        tmp = ['0'] * (length + 1)
+        place = (ord(character) * CharacterEncoder.LARGE_PRIME) % num_buckets
+        tmp = ['0'] * (num_buckets + 1)
         tmp[place] = '1'
         return ''.join(tmp)
 
@@ -187,9 +178,11 @@ class CharacterEncoder:
 def main():
     encoder = CharacterEncoder(ENCODING_SIZE_SMALL)
     # encoder.encode("понимает по-русски")
-    encoder.encode("谢谢你")
+    # encoder.encode("谢谢你")
     # encoder.encode("This is English")
     # encoder.encode(u'ko\u017eu\u0161\u010dek')
+    matrix = encoder.encode(' ')
+    print(matrix)
 
 
 if __name__ == '__main__':
