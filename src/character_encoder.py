@@ -50,8 +50,12 @@ class CharacterEncoder:
                     flag = False
                     rows.append(row)
 
-        padding = [''.zfill(self.d)] * (NUM_ROWS - len(rows))
-        rows.extend(padding)
+        # make sure the matrix has NUM_ROWS
+        if len(rows) > NUM_ROWS:
+            del rows[NUM_ROWS:]
+        else:
+            padding = [''.zfill(self.d)] * (NUM_ROWS - len(rows))
+            rows.extend(padding)
         return rows
 
     def _encode(self, category, character, transliteration=None, is_first_letter=False):

@@ -15,8 +15,13 @@ class CharacterEncoderTest(unittest.TestCase):
     def testUnsupportedEncodingSizeRaisesValueError(self):
         self.assertRaises(ValueError, CharacterEncoder, 10)
 
-    def testNumRows(self):
-        for text in ['This is English', '谢谢你', u'ko\u017eu\u0161\u010dek', 'Junto a ti!']:
+    def testNumRowsWithPadding(self):
+        for text in ['This is English', '谢谢你', u'ko\u017eu\u0161\u010dek']:
+            result = self.encoder.encode(text)
+            self.assertEquals(character_encoder.NUM_ROWS, len(result))
+
+    def testNumRowsWithTruncation(self):
+        for text in [''.zfill(280), ''.zfill(300)]:
             result = self.encoder.encode(text)
             self.assertEquals(character_encoder.NUM_ROWS, len(result))
 

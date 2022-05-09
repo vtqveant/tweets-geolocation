@@ -2,6 +2,8 @@ from os import listdir
 from os.path import isfile, join
 import csv
 
+from typing import List
+
 import character_encoder
 from character_encoder import CharacterEncoder
 
@@ -9,38 +11,34 @@ from character_encoder import CharacterEncoder
 PATH = '../data'
 
 
-class DatasetPreprocessor:
+class DatasetProcessor:
+    """A generator for training examples constructed from files in the dataset"""
 
     def __init__(self):
-        self.filePreprocessor = FilePreprocessor()
+        self.fileProcessor = FileProcessor()
 
-    def process(self):
+    def __iter__(self):
         filenames = [f for f in listdir(PATH) if isfile(join(PATH, f))]
-        # a subset to play with
-        filenames = filenames[0:1]
-        print(filenames)
-
-        entries = {}
         for filename in filenames:
-            entries.update(self.filePreprocessor.process(filename))
-        return entries
+            entries = self.fileProcessor.process(filename)
+            for entry in entries:
+                yield entry
 
 
-class FilePreprocessor:
+class FileProcessor:
 
     def __init__(self):
         self._characterEncoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
 
-    def process(self, filename):
+    def process(self, filename) -> List:
         coord = self._parse_coordinates(filename)
-        entries = {coord: []}
+        entries: List = []
         with open('../data/' + filename, newline='') as f:
             reader = csv.DictReader(f, delimiter=';')
             for row in reader:
-                lang = row['lang']
-                text = row['text']
-                matrix = self._characterEncoder.encode(text)
-                entries[coord].append(matrix)
+                matrix = self._characterEncoder.encode(row['text'])
+                training_example = TrainingExample(matrix, row['lang'], coord)
+                entries.append(training_example)
         return entries
 
     @staticmethod
@@ -62,10 +60,18 @@ class Coordinate:
         return self.lat + ', ' + self.lon
 
 
+class TrainingExample:
+
+    def __init__(self, matrix: List[List[str]], lang: str, coordinates: Coordinate):
+        self.matrix = matrix
+        self.lang = lang
+        self.coordinates = coordinates
+
+
 def main():
-    preprocessor = DatasetPreprocessor()
-    entries = preprocessor.process()
-    print(entries)
+    processor = DatasetProcessor()
+    train_set = [x for _, x in zip(range(50), processor)]
+    print(train_set)
 
 
 if __name__ == '__main__':
