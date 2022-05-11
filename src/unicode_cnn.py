@@ -1,15 +1,15 @@
 import argparse
 import torch
 from torch import nn
+from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import torch.optim as optim
 
 from dataset_processor import LabelTracker, IncaTweetsDataset
 
-
 # Based on MNIST implementation from git@github.com:pytorch/examples.git
 
-NUM_COUNTRY_CODES = 10  # 247 country codes defined by Twitter API
+NUM_COUNTRY_CODES = 19  # 247 country codes defined by Twitter API, 19 in dataset
 
 
 class NeuralNetwork(nn.Module):
@@ -61,7 +61,6 @@ class NeuralNetwork(nn.Module):
         t = self.fc1(x)
         t = F.relu(t)
         t = self.fc2(t)
-        t = F.relu(t)
         t = F.softmax(t, dim=1)
 
         # feature mixing
@@ -73,7 +72,8 @@ class NeuralNetwork(nn.Module):
 
         # country cross-entropy prediction
         y = self.fc5(q)
-        y = F.softmax(y, dim=1)
+        # In PyTorch, the input is expected to contain raw, unnormalized scores for each class, so softmax here is not needed
+        # y = F.softmax(y, dim=1)
 
         return y
 
@@ -84,14 +84,14 @@ def train(args, model, device, train_loader, optimizer, epoch):
         data, target = sample['matrix'].to(device), sample['geo_country_code'].to(device)
         optimizer.zero_grad()
         output = model(data)
-        loss = F.cross_entropy(output, target)
+        loss = F.cross_entropy(output, target, reduction='mean')
         loss.backward()
         optimizer.step()
 
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.12f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
+                       100. * batch_idx / len(train_loader), loss.item()))
             if args.dry_run:
                 break
 
@@ -121,12 +121,12 @@ def test(model, device, test_loader):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=300, metavar='N',
-                        help='input batch size for training (default: 300)')
+    parser.add_argument('--batch-size', type=int, default=100, metavar='N',
+                        help='input batch size for training (default: 100)')
     parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 100)')
-    parser.add_argument('--epochs', type=int, default=2, metavar='N',
-                        help='number of epochs to train (default: 1)')
+    parser.add_argument('--epochs', type=int, default=3, metavar='N',
+                        help='number of epochs to train (default: 3)')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate (default: 0.001)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -156,10 +156,10 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     label_tracker = LabelTracker()
-    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)
-    train_loader = torch.utils.data.DataLoader(train_dataset, **train_kwargs)
+    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
+    train_loader = DataLoader(train_dataset, **train_kwargs)
     test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
-    test_loader = torch.utils.data.DataLoader(test_dataset, **test_kwargs)
+    test_loader = DataLoader(test_dataset, **test_kwargs)
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

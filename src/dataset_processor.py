@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data.dataset import IterableDataset
+from torch import float32
 from os import listdir
 from os.path import isfile, join
 import csv
@@ -54,7 +55,7 @@ class IncaTweetsDataset(IterableDataset):
     @staticmethod
     def _to_tensor(matrix):
         """TODO: this is a temporary solution"""
-        return torch.transpose(torch.tensor([[float(i) for i in s] for s in matrix]), 0, 1)
+        return torch.transpose(torch.tensor([[float(i) for i in s] for s in matrix], dtype=float32), 0, 1)
 
 
 class FileProcessor:
@@ -123,14 +124,20 @@ class TrainingExample:
 
 def main():
     label_tracker = LabelTracker()
-    dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)
+    dataset = IncaTweetsDataset(path='../data', label_tracker=label_tracker)
     # train_set = [x for _, x in zip(range(10), dataset)]
     # print(train_set)
 
     # train_set = [x for _, x in zip(range(1000), torch.utils.data.DataLoader(dataset, num_workers=0))]
-    train_set = [x for x in torch.utils.data.DataLoader(dataset, num_workers=0)]
-    print(len(dataset))
+    # train_set = [x for x in torch.utils.data.DataLoader(dataset, num_workers=0)]
+    # print(len(dataset))
     # print(train_set)
+
+    # to collect labels
+    dataloader = torch.utils.data.DataLoader(dataset, num_workers=0)
+    for sample in dataloader:
+        # print(sample['geo_country_code'], sample['lang'])
+        continue
 
     print(label_tracker.languages)
     print(label_tracker.geo_country_codes)
