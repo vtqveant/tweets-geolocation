@@ -18,5 +18,6 @@ build/
 *.egg-info/
 
 data/
+splits/
 *.zip
 eda/.ipynb_checkpoints/

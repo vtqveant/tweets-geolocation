@@ -9,6 +9,8 @@ from dataset_processor import LabelTracker, IncaTweetsDataset
 
 # Based on MNIST implementation from git@github.com:pytorch/examples.git
 
+NUM_COUNTRY_CODES = 10  # 247 country codes defined by Twitter API
+
 
 class NeuralNetwork(nn.Module):
     def __init__(self):
@@ -34,7 +36,7 @@ class NeuralNetwork(nn.Module):
         self.fc4 = nn.Linear(in_features=1024, out_features=1024)
 
         # country cross-entropy prediction (Twitter API defines a total of 247 unique country codes)
-        self.fc5 = nn.Linear(in_features=1024, out_features=247)
+        self.fc5 = nn.Linear(in_features=1024, out_features=NUM_COUNTRY_CODES)
 
     def forward(self, x):
         # convolutional layers
@@ -82,29 +84,51 @@ def train(args, model, device, train_loader, optimizer, epoch):
         data, target = sample['matrix'].to(device), sample['geo_country_code'].to(device)
         optimizer.zero_grad()
         output = model(data)
-        loss = F.nll_loss(output, target)
+        loss = F.cross_entropy(output, target)
         loss.backward()
         optimizer.step()
 
         if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{} samples]\tLoss: {:.6f}'.format(
-                epoch,
-                batch_idx * len(data),
-                loss.item()
-            ))
+            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.12f}'.format(
+                epoch, batch_idx * len(data), len(train_loader.dataset),
+                100. * batch_idx / len(train_loader), loss.item()))
             if args.dry_run:
                 break
+
+
+def test(model, device, test_loader):
+    model.eval()
+    test_loss = 0
+    correct = 0
+    with torch.no_grad():
+        for sample in test_loader:
+            data, target = sample['matrix'].to(device), sample['geo_country_code'].to(device)
+            output = model(data)
+            test_loss += F.cross_entropy(output, target).item()  # sum up batch loss
+            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            correct += pred.eq(target.view_as(pred)).sum().item()
+
+    test_loss /= len(test_loader.dataset)
+
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        test_loss,
+        correct,
+        len(test_loader.dataset),
+        100. * correct / len(test_loader.dataset)
+    ))
 
 
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=100, metavar='N',
-                        help='input batch size for training (default: 1)')
-    parser.add_argument('--epochs', type=int, default=14, metavar='N',
-                        help='number of epochs to train (default: 14)')
-    parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',
-                        help='learning rate (default: 0.0001)')
+    parser.add_argument('--batch-size', type=int, default=300, metavar='N',
+                        help='input batch size for training (default: 300)')
+    parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
+                        help='input batch size for testing (default: 100)')
+    parser.add_argument('--epochs', type=int, default=2, metavar='N',
+                        help='number of epochs to train (default: 1)')
+    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
+                        help='learning rate (default: 0.001)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     parser.add_argument('--dry-run', action='store_true', default=False,
@@ -118,11 +142,13 @@ def main():
     print(f"Using {device} device")
 
     train_kwargs = {'batch_size': args.batch_size}
+    test_kwargs = {'batch_size': args.test_batch_size}
     if use_cuda:
         cuda_kwargs = {'num_workers': 0,
                        'pin_memory': True,
                        'shuffle': False}
         train_kwargs.update(cuda_kwargs)
+        test_kwargs.update(cuda_kwargs)
 
     model = NeuralNetwork().to(device)
     print(model)
@@ -130,11 +156,14 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     label_tracker = LabelTracker()
-    dataset = IncaTweetsDataset(label_tracker=label_tracker)
-    train_loader = torch.utils.data.DataLoader(dataset, **train_kwargs)
+    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)
+    train_loader = torch.utils.data.DataLoader(train_dataset, **train_kwargs)
+    test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
+    test_loader = torch.utils.data.DataLoader(test_dataset, **test_kwargs)
 
-    # a singe epoch to play with
-    train(args, model, device, train_loader, optimizer, epoch=0)
+    for epoch in range(1, args.epochs + 1):
+        train(args, model, device, train_loader, optimizer, epoch)
+        test(model, device, test_loader)
 
 
 if __name__ == '__main__':

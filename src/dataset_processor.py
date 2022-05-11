@@ -3,21 +3,27 @@ from torch.utils.data.dataset import IterableDataset
 from os import listdir
 from os.path import isfile, join
 import csv
+import random
 
 from typing import List
 
 import character_encoder
 from character_encoder import CharacterEncoder
 
-PATH = '../data'
-
 
 class IncaTweetsDataset(IterableDataset):
     """A generator for training examples constructed from files in the dataset"""
-    def __init__(self, label_tracker):
+
+    def __init__(self, path, label_tracker):
         super(IterableDataset, self).__init__()
-        self.label_tracker = label_tracker
+        self._path = path
+        self._label_tracker = label_tracker
         self._file_processor = FileProcessor()
+
+        self._filenames = [f for f in listdir(self._path) if isfile(join(self._path, f))]
+        random.shuffle(self._filenames)
+
+        self._num_samples = None
 
     def __iter__(self):
         worker_info = torch.utils.data.get_worker_info()
@@ -25,15 +31,25 @@ class IncaTweetsDataset(IterableDataset):
             print("ERROR: multiple workers are not supported, DataLoader needs to be initialized with num_workers=0")
             quit()
 
-        for filename in listdir(PATH):
-            if isfile(join(PATH, filename)):
-                entries = self._file_processor.process(filename)
-                for entry in entries:
-                    yield {
-                        "matrix": self._to_tensor(entry.matrix),
-                        "lang": self.label_tracker.get_language_index(entry.lang),
-                        "geo_country_code": self.label_tracker.get_country_index(entry.geo_country_code)
-                    }
+        for filename in self._filenames:
+            entries = self._file_processor.process(self._path, filename)
+            for entry in entries:
+                yield {
+                    "matrix": self._to_tensor(entry.matrix),
+                    "lang": self._label_tracker.get_language_index(entry.lang),
+                    "geo_country_code": self._label_tracker.get_country_index(entry.geo_country_code)
+                }
+
+    def __len__(self):
+        """TODO don't use it in the final solution, use it only to play with the dataset a little bit"""
+        if self._num_samples is None:
+            self._num_samples = 0
+            for filename in self._filenames:
+                with open(join(self._path, filename), newline='') as f:
+                    reader = csv.DictReader(f, delimiter=';')
+                    for _ in reader:
+                        self._num_samples += 1
+        return self._num_samples
 
     @staticmethod
     def _to_tensor(matrix):
@@ -45,10 +61,10 @@ class FileProcessor:
     def __init__(self):
         self._characterEncoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
 
-    def process(self, filename) -> List:
+    def process(self, path, filename) -> List:
         coord = self._parse_coordinates(filename)
         entries: List = []
-        with open('../data/' + filename, newline='') as f:
+        with open(join(path, filename), newline='') as f:
             reader = csv.DictReader(f, delimiter=';')
             for row in reader:
                 matrix = self._characterEncoder.encode(row['text'])
@@ -66,6 +82,7 @@ class FileProcessor:
 
 class LabelTracker:
     """A container for labels with lazy registration"""
+
     def __init__(self):
         self.language_index = 0
         self.country_code_index = 0
@@ -87,6 +104,7 @@ class LabelTracker:
 
 class Coordinate:
     """A class to represent a point on the Earth"""
+
     def __init__(self, lat, lon):
         self.lat = lat
         self.lon = lon
@@ -105,12 +123,14 @@ class TrainingExample:
 
 def main():
     label_tracker = LabelTracker()
-    dataset = IncaTweetsDataset(label_tracker=label_tracker)
+    dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)
     # train_set = [x for _, x in zip(range(10), dataset)]
     # print(train_set)
 
-    train_set = [x for _, x in zip(range(10), torch.utils.data.DataLoader(dataset, num_workers=0))]
-    print(train_set)
+    # train_set = [x for _, x in zip(range(1000), torch.utils.data.DataLoader(dataset, num_workers=0))]
+    train_set = [x for x in torch.utils.data.DataLoader(dataset, num_workers=0)]
+    print(len(dataset))
+    # print(train_set)
 
     print(label_tracker.languages)
     print(label_tracker.geo_country_codes)
