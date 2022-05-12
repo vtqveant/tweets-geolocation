@@ -6,13 +6,16 @@ import math
 
 
 class MvMFLayer(nn.Module):
+    """This works more like a loss, i.e. it evaluates an expression to be minimized given a point on a sphere
+    (e.g. using a MAE w.r.t. zero), but it does not infer any points itself. A prediction will be done afterwards using
+    the parameters trained with this network."""
 
     def __init__(self, in_features, num_distributions):
         super().__init__()
         self._num_distributions = num_distributions
 
         self.kappa = nn.Parameter(torch.Tensor(num_distributions))
-        self.mu = nn.Parameter(torch.Tensor(num_distributions, 3))  # each mu nust be of length 1, i.e. $||\mu_i||_2 = 1$
+        self.mu = nn.Parameter(torch.Tensor(num_distributions, 3))  # each mu must be of length 1, i.e. $||\mu_i||_2 = 1$
 
         self.fc1 = nn.Linear(in_features=in_features, out_features=self._num_distributions)
 
@@ -27,7 +30,7 @@ class MvMFLayer(nn.Module):
         exponent = torch.exp(m)
         vmf = torch.mul(coeff, exponent)
         mvmf = torch.sum(torch.mul(w, vmf), dim=0)
-        return mvmf
+        return torch.neg(torch.log(mvmf))
 
 
 def to_euclidean(lat, lon):
@@ -89,9 +92,16 @@ def main():
     # and the weights to be passed through a softmax
     weights = torch.tensor(np.array([0.5, 0.1, 0.1, 0.2, 0., 0., 0.1, 0., 0., 0.]), dtype=torch.float32)
 
-    # the output is the probability of these coordinates w.r.t. to MvMF given weights
+    # the output is (should be) the probability of these coordinates w.r.t. to MvMF given weights
     y = model(weights, eucl_coord)
     print('Forward pass:', y)
+
+    target = torch.tensor(1.0)
+    loss = F.mse_loss(y, target)
+    loss.backward()
+
+    print('MvMF result: ', y)
+    print('loss: ', loss)
 
 
 if __name__ == '__main__':
