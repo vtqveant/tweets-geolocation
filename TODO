@@ -62,3 +62,8 @@ Data augmentation и data leakage
 10815072 записей всего, есть пустые файлы (только заголовок)
 всего языков 55
 всего стран 19
+
+
+### Another solutions
+
+https://github.com/ildkhav/a-Deep-Learning-model-to-predict-geolocation-of-tweets/blob/main/single%20layer%20regression.py

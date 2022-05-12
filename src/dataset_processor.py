@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data.dataset import IterableDataset
-from torch import float32
 from os import listdir
 from os.path import isfile, join
 import csv
@@ -11,6 +10,7 @@ from typing import List
 import character_encoder
 from character_encoder import CharacterEncoder
 from label_tracker import LabelTracker, FileLabelTracker
+from geometry import Coordinate, to_euclidean
 
 
 class IncaTweetsDataset(IterableDataset):
@@ -38,21 +38,22 @@ class IncaTweetsDataset(IterableDataset):
             for entry in entries:
                 yield {
                     "matrix": self._to_tensor(entry.matrix),
+                    "coordinates": torch.tensor(to_euclidean(entry.coord.lat, entry.coord.lon), dtype=torch.float32),
                     "lang": self._label_tracker.get_language_index(entry.lang),
                     "geo_country_code": self._label_tracker.get_country_index(entry.geo_country_code)
                 }
 
     def __len__(self):
         """TODO don't use it in the final solution, use it only to play with the dataset a little bit"""
-        # return 10815072
-        if self._num_samples is None:
-            self._num_samples = 0
-            for filename in self._filenames:
-                with open(join(self._path, filename), newline='') as f:
-                    reader = csv.DictReader(f, delimiter=';')
-                    for _ in reader:
-                        self._num_samples += 1
-        return self._num_samples
+        return 10815072
+        # if self._num_samples is None:
+        #     self._num_samples = 0
+        #     for filename in self._filenames:
+        #         with open(join(self._path, filename), newline='') as f:
+        #             reader = csv.DictReader(f, delimiter=';')
+        #             for _ in reader:
+        #                 self._num_samples += 1
+        # return self._num_samples
 
     @staticmethod
     def _to_tensor(matrix):
@@ -83,23 +84,12 @@ class FileProcessor:
         return Coordinate(lat, lon)
 
 
-class Coordinate:
-    """A class to represent a point on the Earth"""
-
-    def __init__(self, lat, lon):
-        self.lat = lat
-        self.lon = lon
-
-    def __str__(self):
-        return self.lat + ', ' + self.lon
-
-
 class TrainingExample:
-    def __init__(self, matrix: List[List[str]], lang: str, geo_country_code: str, coordinates: Coordinate):
+    def __init__(self, matrix: List[List[str]], lang: str, geo_country_code: str, coordinate: Coordinate):
         self.matrix = matrix
         self.lang = lang
         self.geo_country_code = geo_country_code
-        self.coordinates = coordinates
+        self.coord = coordinate
 
 
 def main():

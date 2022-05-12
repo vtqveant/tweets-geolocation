@@ -7,6 +7,7 @@ import torch.optim as optim
 
 from dataset_processor import IncaTweetsDataset
 from label_tracker import FileLabelTracker
+from mvmf_layer import MvMFLayer, init_mvmf_weights
 
 # Based on MNIST implementation from git@github.com:pytorch/examples.git
 
@@ -39,9 +40,13 @@ class UnicodeCNN(nn.Module):
         # country cross-entropy prediction (Twitter API defines a total of 247 unique country codes)
         self.fc5 = nn.Linear(in_features=1024, out_features=NUM_COUNTRY_CODES)
 
-    def forward(self, x):
+        # MvMF
+        self.mvmf = MvMFLayer(in_features=1024, num_distributions=10000)
+
+
+    def forward(self, unicode_features, euclidean_coordinates):
         # convolutional layers
-        x = self.conv1(x)
+        x = self.conv1(unicode_features)
         x = F.relu(x)
         x = self.maxpool1(x)
         x = self.conv2(x)
@@ -69,12 +74,15 @@ class UnicodeCNN(nn.Module):
         q = self.fc3(q)
         q = F.relu(q)
         q = self.fc4(q)
-        q = F.relu(q)
+        mixed_features = F.relu(q)
 
         # country cross-entropy prediction
-        y = self.fc5(q)
-        # In PyTorch, the input is expected to contain raw, unnormalized scores for each class, so softmax here is not needed
-        # y = F.softmax(y, dim=1)
+        # y = self.fc5(mixed_features)
+        # In PyTorch, the input is expected to contain raw, unnormalized scores for each class, so softmax
+        # after y is not needed
+
+        # MvMF layer
+        y = self.mvmf(mixed_features, euclidean_coordinates)
 
         return y
 
@@ -82,16 +90,25 @@ class UnicodeCNN(nn.Module):
 def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, sample in enumerate(train_loader):
-        data, target = sample['matrix'].to(device), sample['geo_country_code'].to(device)
+        unicode_features = sample['matrix'].to(device)
+        euclidean_coordinates = sample['coordinates'].to(device)
+        # geo_country_code = sample['geo_country_code'].to(device)
+
         optimizer.zero_grad()
-        output = model(data)
-        loss = F.cross_entropy(output, target, reduction='mean')
+        output = model(unicode_features, euclidean_coordinates)
+
+        # Task 1 - country prediction
+        # loss = F.cross_entropy(output, geo_country_code, reduction='mean')  # TODO it was used for country cross-entropy
+
+        # Task 2 - MvMF loss
+        zeros = torch.zeros(len(euclidean_coordinates)).to(device)
+        loss = F.mse_loss(output, zeros)
         loss.backward()
         optimizer.step()
 
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.12f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
+                epoch, batch_idx * len(unicode_features), len(train_loader.dataset),
                        100. * batch_idx / len(train_loader), loss.item()))
             if args.dry_run:
                 break
@@ -128,8 +145,8 @@ def main():
                         help='input batch size for testing (default: 100)')
     parser.add_argument('--epochs', type=int, default=10, metavar='N',
                         help='number of epochs to train (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
-                        help='learning rate (default: 0.001)')
+    parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',
+                        help='learning rate (default: 0.0001)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     parser.add_argument('--dry-run', action='store_true', default=False,
@@ -154,13 +171,16 @@ def main():
     model = UnicodeCNN().to(device)
     print(model)
 
+    # initialization for MvMF layer
+    model.apply(init_mvmf_weights)
+
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     label_tracker = FileLabelTracker(
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
     )
-    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
+    train_dataset = IncaTweetsDataset(path='../data', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
     train_loader = DataLoader(train_dataset, **train_kwargs)
     test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
     test_loader = DataLoader(test_dataset, **test_kwargs)
