@@ -13,9 +13,9 @@ from label_tracker import FileLabelTracker
 NUM_COUNTRY_CODES = 19  # 247 country codes defined by Twitter API, 19 in dataset
 
 
-class NeuralNetwork(nn.Module):
+class UnicodeCNN(nn.Module):
     def __init__(self):
-        super(NeuralNetwork, self).__init__()
+        super(UnicodeCNN, self).__init__()
 
         # convolutional layers
         self.conv1 = nn.Conv1d(in_channels=128, out_channels=256, kernel_size=7)
@@ -151,7 +151,7 @@ def main():
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    model = NeuralNetwork().to(device)
+    model = UnicodeCNN().to(device)
     print(model)
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)

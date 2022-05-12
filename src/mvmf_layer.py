@@ -24,12 +24,14 @@ class MvMFLayer(nn.Module):
         w = F.softmax(w, dim=0)
 
         coeff = torch.div(self.kappa, torch.sinh(self.kappa))
-        inner = torch.inner(self.mu, euclidean_coord)
-        inner = torch.reshape(inner, (-1,))
+        # inner = torch.inner(self.mu, euclidean_coord)
+        # inner = torch.reshape(inner, (-1,))
+        inner = torch.matmul(self.mu, torch.transpose(euclidean_coord, 0, 1))
+        inner = torch.transpose(inner, 0, 1)
         m = torch.mul(self.kappa, inner)
         exponent = torch.exp(m)
         vmf = torch.mul(coeff, exponent)
-        mvmf = torch.sum(torch.mul(w, vmf), dim=0)
+        mvmf = torch.sum(torch.mul(w, vmf), dim=1)
         return torch.neg(torch.log(mvmf))
 
 
@@ -86,8 +88,9 @@ def main():
 
     # the layer combines two inputs
     # a point on $S^2$ converted to euclidean coordinates...
-    input = np.array(to_euclidean(lat, lon))
-    eucl_coord = torch.tensor(np.array([input]), dtype=torch.float32)
+    in1 = np.array(to_euclidean(0.508498, -73.8294))
+    in2 = np.array(to_euclidean(-10.5, 34.342))
+    eucl_coord = torch.tensor(np.array([in1, in2]), dtype=torch.float32)
 
     # and the weights to be passed through a softmax
     weights = torch.tensor(np.array([0.5, 0.1, 0.1, 0.2, 0., 0., 0.1, 0., 0., 0.]), dtype=torch.float32)
@@ -96,7 +99,7 @@ def main():
     y = model(weights, eucl_coord)
     print('Forward pass:', y)
 
-    target = torch.tensor(1.0)
+    target = torch.zeros(len(eucl_coord))
     loss = F.mse_loss(y, target)
     loss.backward()
 
