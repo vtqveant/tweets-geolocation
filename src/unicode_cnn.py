@@ -5,11 +5,12 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import torch.optim as optim
 
-from dataset_processor import LabelTracker, IncaTweetsDataset
+from dataset_processor import IncaTweetsDataset
+from label_tracker import FileLabelTracker
 
 # Based on MNIST implementation from git@github.com:pytorch/examples.git
 
-NUM_COUNTRY_CODES = 19  # 247 country codes defined by Twitter API, 19 in dataset
+NUM_COUNTRY_CODES = 20  # 247 country codes defined by Twitter API, 19 in dataset
 
 
 class NeuralNetwork(nn.Module):
@@ -155,7 +156,10 @@ def main():
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    label_tracker = LabelTracker()
+    label_tracker = FileLabelTracker(
+        languages_filename='inca_dataset_langs.json',
+        country_codes_filename='inca_dataset_geo_country_codes.json'
+    )
     train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
     train_loader = DataLoader(train_dataset, **train_kwargs)
     test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)

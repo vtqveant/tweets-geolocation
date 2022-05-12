@@ -10,12 +10,13 @@ from typing import List
 
 import character_encoder
 from character_encoder import CharacterEncoder
+from label_tracker import LabelTracker, FileLabelTracker
 
 
 class IncaTweetsDataset(IterableDataset):
-    """A generator for training examples constructed from files in the dataset"""
+    """An iterator for training examples constructed from files in the dataset"""
 
-    def __init__(self, path, label_tracker):
+    def __init__(self, path: str, label_tracker: LabelTracker):
         super(IterableDataset, self).__init__()
         self._path = path
         self._label_tracker = label_tracker
@@ -54,8 +55,8 @@ class IncaTweetsDataset(IterableDataset):
 
     @staticmethod
     def _to_tensor(matrix):
-        """TODO: this is a temporary solution"""
-        return torch.transpose(torch.tensor([[float(i) for i in s] for s in matrix], dtype=float32), 0, 1)
+        """a matrix is actually a list of bytestring consisting of b'0' and b'1', so we need to offset by 48"""
+        return torch.transpose(torch.tensor([[float(i - 48) for i in s] for s in matrix], dtype=float32), 0, 1)
 
 
 class FileProcessor:
@@ -81,28 +82,6 @@ class FileProcessor:
         return Coordinate(lat, lon)
 
 
-class LabelTracker:
-    """A container for labels with lazy registration"""
-
-    def __init__(self):
-        self.language_index = 0
-        self.country_code_index = 0
-        self.languages = {}
-        self.geo_country_codes = {}
-
-    def get_language_index(self, language):
-        if language not in self.languages.keys():
-            self.languages[language] = self.language_index
-            self.language_index += 1
-        return self.languages[language]
-
-    def get_country_index(self, country_code):
-        if country_code not in self.geo_country_codes.keys():
-            self.geo_country_codes[country_code] = self.country_code_index
-            self.country_code_index += 1
-        return self.geo_country_codes[country_code]
-
-
 class Coordinate:
     """A class to represent a point on the Earth"""
 
@@ -123,24 +102,18 @@ class TrainingExample:
 
 
 def main():
-    label_tracker = LabelTracker()
+    label_tracker = FileLabelTracker(
+        languages_filename='inca_dataset_langs.json',
+        country_codes_filename='inca_dataset_geo_country_codes.json'
+    )
     dataset = IncaTweetsDataset(path='../data', label_tracker=label_tracker)
     # train_set = [x for _, x in zip(range(10), dataset)]
     # print(train_set)
 
-    # train_set = [x for _, x in zip(range(1000), torch.utils.data.DataLoader(dataset, num_workers=0))]
+    train_set = [x for _, x in zip(range(10), torch.utils.data.DataLoader(dataset, num_workers=0))]
     # train_set = [x for x in torch.utils.data.DataLoader(dataset, num_workers=0)]
     # print(len(dataset))
-    # print(train_set)
-
-    # to collect labels
-    dataloader = torch.utils.data.DataLoader(dataset, num_workers=0)
-    for sample in dataloader:
-        # print(sample['geo_country_code'], sample['lang'])
-        continue
-
-    print(label_tracker.languages)
-    print(label_tracker.geo_country_codes)
+    print(train_set)
 
 
 if __name__ == '__main__':

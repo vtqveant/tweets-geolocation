@@ -1,26 +1,37 @@
-from os import listdir
-from os.path import isfile, join
-import csv
+
+# padding = [''.zfill(self.d)] * (NUM_ROWS - len(rows))
+
+a = b'0001000'
+print(a)
+print(a[0])
+
+i = float(a[0] - 48)
+print(i)
+
+l = [float(i - 48) for i in a]
+print(l)
 
 
-path = '../data'
-filenames = [f for f in listdir(path) if isfile(join(path, f))]
+b = b'0011100'
+print(b)
 
-langs = {}
-countries = {}
+c = a + b
+print(c)
+l2 = [float(i - 48) for i in c]
+print(l2)
 
-counter = 0
-for filename in filenames:
-    with open(join(path, filename), newline='') as f:
-        reader = csv.DictReader(f, delimiter=';')
-        for row in reader:
-            if row['lang'] not in langs.keys():
-                langs[row['lang']] = 0
-            if row['geo_country_code'] not in countries.keys():
-                countries[row['geo_country_code']] = 0
-    if counter % 100 == 0:
-        print('{:.0f}% done'.format(100. * counter / len(filenames)))
-    counter += 1
 
-print('langs', len(langs.keys()))
-print('countries', len(countries.keys()))
+d = b''.zfill(10)
+print(d)
+s = d[:3] + b'3' + d[3 + 1:]
+print(s)
+
+
+def _replace(bytestring: bytes, index: int, value: bytes):
+    return bytestring[:index] + value + bytestring[index + 1:]
+
+
+print(_replace(b'0000', 0, b'1'))
+print(_replace(b'0000', 1, b'1'))
+print(_replace(b'0000', 2, b'1'))
+print(_replace(b'0000', 3, b'1'))
