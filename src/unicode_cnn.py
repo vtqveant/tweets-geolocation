@@ -10,7 +10,7 @@ from label_tracker import FileLabelTracker
 
 # Based on MNIST implementation from git@github.com:pytorch/examples.git
 
-NUM_COUNTRY_CODES = 20  # 247 country codes defined by Twitter API, 19 in dataset
+NUM_COUNTRY_CODES = 19  # 247 country codes defined by Twitter API, 19 in dataset
 
 
 class NeuralNetwork(nn.Module):
@@ -62,7 +62,7 @@ class NeuralNetwork(nn.Module):
         t = self.fc1(x)
         t = F.relu(t)
         t = self.fc2(t)
-        t = F.softmax(t, dim=1)
+        t = F.softmax(t, dim=1)  # TODO check if this dimension is correct
 
         # feature mixing
         q = torch.cat((x, t), 1)
@@ -122,12 +122,12 @@ def test(model, device, test_loader):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=100, metavar='N',
-                        help='input batch size for training (default: 100)')
+    parser.add_argument('--batch-size', type=int, default=400, metavar='N',
+                        help='input batch size for training (default: 400)')
     parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 100)')
-    parser.add_argument('--epochs', type=int, default=3, metavar='N',
-                        help='number of epochs to train (default: 3)')
+    parser.add_argument('--epochs', type=int, default=10, metavar='N',
+                        help='number of epochs to train (default: 10)')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate (default: 0.001)')
     parser.add_argument('--no-cuda', action='store_true', default=False,

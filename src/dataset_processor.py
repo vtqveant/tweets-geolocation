@@ -44,6 +44,7 @@ class IncaTweetsDataset(IterableDataset):
 
     def __len__(self):
         """TODO don't use it in the final solution, use it only to play with the dataset a little bit"""
+        # return 10815072
         if self._num_samples is None:
             self._num_samples = 0
             for filename in self._filenames:
@@ -56,7 +57,7 @@ class IncaTweetsDataset(IterableDataset):
     @staticmethod
     def _to_tensor(matrix):
         """a matrix is actually a list of bytestring consisting of b'0' and b'1', so we need to offset by 48"""
-        return torch.transpose(torch.tensor([[float(i - 48) for i in s] for s in matrix], dtype=float32), 0, 1)
+        return torch.transpose(torch.tensor([[float(i - 48) for i in s] for s in matrix], dtype=torch.float32), 0, 1)
 
 
 class FileProcessor:
