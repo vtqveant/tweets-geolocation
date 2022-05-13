@@ -6,9 +6,11 @@ from geometry import to_euclidean
 
 
 class MvMFLayer(nn.Module):
-    """This works more like a loss, i.e. it evaluates an expression to be minimized given a point on a sphere
+    """
+    This works more like a loss, i.e. it evaluates an expression to be minimized given a point on a sphere
     (e.g. using a MAE w.r.t. zero), but it does not infer any points itself. A prediction will be done afterwards using
-    the parameters trained with this network."""
+    the parameters trained with this network.
+    """
 
     def __init__(self, in_features, num_distributions):
         super().__init__()
@@ -20,7 +22,7 @@ class MvMFLayer(nn.Module):
         vmf_weights = self.fc1(weights)
         vmf_weights = F.softmax(vmf_weights, dim=1)
 
-        d = torch.transpose(torch.matmul(self.mu, torch.transpose(euclidean_coord, 0, 1)), 0, 1)
+        d = torch.matmul(euclidean_coord, torch.transpose(self.mu, 0, 1))
         exponent = torch.exp(torch.mul(self.kappa, d))
 
         coeff = torch.div(self.kappa, torch.sinh(self.kappa))
@@ -33,10 +35,12 @@ class MvMFLayer(nn.Module):
 
 
 def MvMF_loss(output, target):
-    """The loss (negative logarithm of a weighted sum of vMF components) equals zero when the MvMF is
+    """
+    The loss (negative logarithm of a weighted sum of vMF components) equals zero when the MvMF is
     equal to 1, in which case MvMF can be interpreted as a probability distribution over separate vMFs treated
     as classes (probability of a tweet being submitted from a particular city, if vMFs are initialized with
-    coordinates of cities)."""
+    coordinates of cities).
+    """
     return F.l1_loss(torch.neg(torch.log(output)), target)
 
 

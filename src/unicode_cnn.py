@@ -27,11 +27,11 @@ class UnicodeCNN(nn.Module):
         self.conv3 = nn.Conv1d(in_channels=256, out_channels=256, kernel_size=3)
         self.conv4 = nn.Conv1d(in_channels=256, out_channels=256, kernel_size=3)
         self.conv5 = nn.Conv1d(in_channels=256, out_channels=256, kernel_size=3)
-        self.maxpool3 = nn.MaxPool1d(kernel_size=3)
         self.conv6 = nn.Conv1d(in_channels=256, out_channels=256, kernel_size=3)
+        self.maxpool3 = nn.MaxPool1d(kernel_size=3)
 
         # language estimator (66 languages supported by Twitter API, including Unknown)
-        self.fc1 = nn.Linear(in_features=1536, out_features=1024)
+        self.fc1 = nn.Linear(in_features=256 * 6, out_features=1024)
         self.fc2 = nn.Linear(in_features=1024, out_features=66)
 
         # feature mixing
@@ -42,7 +42,7 @@ class UnicodeCNN(nn.Module):
         self.fc5 = nn.Linear(in_features=1024, out_features=NUM_COUNTRY_CODES)
 
         # MvMF
-        self.mvmf = MvMFLayer(in_features=1024, num_distributions=10000)
+        self.mvmf = MvMFLayer(in_features=1024, num_distributions=10)
 
     def forward(self, unicode_features, euclidean_coordinates):
         # convolutional layers
@@ -61,13 +61,13 @@ class UnicodeCNN(nn.Module):
         x = self.conv6(x)
         x = F.relu(x)
         x = self.maxpool3(x)
-        x = torch.flatten(x, 1)
+        x = torch.flatten(x, start_dim=1)
 
         # language estimator
         t = self.fc1(x)
         t = F.relu(t)
         t = self.fc2(t)
-        t = F.softmax(t, dim=1) 
+        t = F.softmax(t, dim=1)
 
         # feature mixing
         q = torch.cat((x, t), 1)
@@ -162,8 +162,8 @@ def main():
                         help='input batch size for testing (default: 100)')
     parser.add_argument('--epochs', type=int, default=20, metavar='N',
                         help='number of epochs to train (default: 3)')
-    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
-                        help='learning rate (default: 0.01)')
+    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
+                        help='learning rate (default: 0.001)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     parser.add_argument('--dry-run', action='store_true', default=False,
@@ -215,7 +215,7 @@ def main():
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    # model.load_state_dict(torch.load('../snapshots/13-05-2022_18:50:37.pth'))
+    model.load_state_dict(torch.load('../snapshots/14-05-2022_00:26:07.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

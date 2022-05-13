@@ -6,7 +6,7 @@ from label_tracker import FileLabelTracker
 from unicode_cnn import UnicodeCNN
 
 model = UnicodeCNN()
-model.load_state_dict(torch.load('../snapshots/13-05-2022_19:34:51.pth'))
+model.load_state_dict(torch.load('../snapshots/14-05-2022_00:26:07.pth'))
 model.eval()
 
 # Print model's state_dict
@@ -14,7 +14,7 @@ print("Model's state_dict:")
 for param_tensor in model.state_dict():
     print(param_tensor, "\t", model.state_dict()[param_tensor].size())
 
-test_kwargs = {'batch_size': 1}
+test_kwargs = {'batch_size': 4}
 
 label_tracker = FileLabelTracker(
     languages_filename='inca_dataset_langs.json',
