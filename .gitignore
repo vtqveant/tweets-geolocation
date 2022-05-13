@@ -19,5 +19,6 @@ build/
 
 data/
 splits/
+snapshots/
 *.zip
 eda/.ipynb_checkpoints/

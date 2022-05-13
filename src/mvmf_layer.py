@@ -12,24 +12,19 @@ class MvMFLayer(nn.Module):
 
     def __init__(self, in_features, num_distributions):
         super().__init__()
-        self._num_distributions = num_distributions
-
         self.kappa = nn.Parameter(torch.Tensor(num_distributions))
         self.mu = nn.Parameter(torch.Tensor(num_distributions, 3))  # each mu must be of length 1, i.e. $||\mu_i||_2 = 1$
+        self.fc1 = nn.Linear(in_features=in_features, out_features=num_distributions)
 
-        self.fc1 = nn.Linear(in_features=in_features, out_features=self._num_distributions)
+    def forward(self, weights, euclidean_coord):
+        vmf_weights = self.fc1(weights)
+        vmf_weights = F.softmax(vmf_weights, dim=0)
 
-    def forward(self, raw_weights, euclidean_coord):
-        w = self.fc1(raw_weights)
-        w = F.softmax(w, dim=0)
-
+        d = torch.transpose(torch.matmul(self.mu, torch.transpose(euclidean_coord, 0, 1)), 0, 1)
+        exponent = torch.exp(torch.mul(self.kappa, d))
         coeff = torch.div(self.kappa, torch.sinh(self.kappa))
-        inner = torch.matmul(self.mu, torch.transpose(euclidean_coord, 0, 1))
-        inner = torch.transpose(inner, 0, 1)
-        m = torch.mul(self.kappa, inner)
-        exponent = torch.exp(m)
         vmf = torch.mul(coeff, exponent)
-        mvmf = torch.sum(torch.mul(w, vmf), dim=1)
+        mvmf = torch.sum(torch.mul(vmf_weights, vmf), dim=1)
         return torch.neg(torch.log(mvmf))
 
 
@@ -37,7 +32,7 @@ def init_mvmf_weights(module):
     """
     This function should be passed to nn.Module.apply()
 
-        model = MvMFLayer(in_features=10, num_distributions=7)
+        model = MvMFLayer(in_features=1024, num_distributions=10000)
         model.apply(init_mvmf_weights)
     """
     if isinstance(module, MvMFLayer):

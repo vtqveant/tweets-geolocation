@@ -4,6 +4,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import torch.optim as optim
+from datetime import datetime
 
 from dataset_processor import IncaTweetsDataset
 from label_tracker import FileLabelTracker
@@ -42,7 +43,6 @@ class UnicodeCNN(nn.Module):
 
         # MvMF
         self.mvmf = MvMFLayer(in_features=1024, num_distributions=10000)
-
 
     def forward(self, unicode_features, euclidean_coordinates):
         # convolutional layers
@@ -101,8 +101,8 @@ def train(args, model, device, train_loader, optimizer, epoch):
         # loss = F.cross_entropy(output, geo_country_code, reduction='mean')  # TODO it was used for country cross-entropy
 
         # Task 2 - MvMF loss
-        zeros = torch.zeros(len(euclidean_coordinates)).to(device)
-        loss = F.mse_loss(output, zeros)
+        target = torch.zeros(len(euclidean_coordinates)).to(device)
+        loss = F.mse_loss(output, target)
         loss.backward()
         optimizer.step()
 
@@ -113,6 +113,12 @@ def train(args, model, device, train_loader, optimizer, epoch):
             if args.dry_run:
                 break
 
+        if batch_idx > 0 and batch_idx % args.snapshot_interval == 0:
+            if args.dry_run:
+                break
+            print('Saving snapshot for epoch {}\n'.format(epoch))
+            torch.save(model.state_dict(), '../snapshots/' + datetime.now().strftime("%d-%m-%Y_%H:%M:%S") + '.pth')
+
 
 def test(model, device, test_loader):
     model.eval()
@@ -120,11 +126,18 @@ def test(model, device, test_loader):
     correct = 0
     with torch.no_grad():
         for sample in test_loader:
-            data, target = sample['matrix'].to(device), sample['geo_country_code'].to(device)
-            output = model(data)
-            test_loss += F.cross_entropy(output, target).item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            correct += pred.eq(target.view_as(pred)).sum().item()
+            unicode_features = sample['matrix'].to(device)
+            euclidean_coordinates = sample['coordinates'].to(device)
+            # geo_country_code = sample['geo_country_code'].to(device)
+
+            # Task 1 - country code prediction
+            # test_loss += F.cross_entropy(output, target).item()  # sum up batch loss
+            # pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            # correct += pred.eq(target.view_as(pred)).sum().item()
+
+            # Task 2 = MvMF loss
+            target = torch.zeros(len(euclidean_coordinates)).to(device)
+            output = model(unicode_features, euclidean_coordinates)
 
     test_loss /= len(test_loader.dataset)
 
@@ -139,12 +152,12 @@ def test(model, device, test_loader):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=400, metavar='N',
-                        help='input batch size for training (default: 400)')
+    parser.add_argument('--batch-size', type=int, default=100, metavar='N',
+                        help='input batch size for training (default: 100)')
     parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 100)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                        help='number of epochs to train (default: 10)')
+    parser.add_argument('--epochs', type=int, default=1, metavar='N',
+                        help='number of epochs to train (default: 3)')
     parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',
                         help='learning rate (default: 0.0001)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -153,6 +166,8 @@ def main():
                         help='quickly check a single pass')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
+    parser.add_argument('--snapshot-interval', type=int, default=1000, metavar='N',
+                        help='how many batches to wait before saving a snapshot')
     args = parser.parse_args()
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
@@ -176,6 +191,16 @@ def main():
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
+    # Print model's state_dict
+    print("Model's state_dict:")
+    for param_tensor in model.state_dict():
+        print(param_tensor, "\t", model.state_dict()[param_tensor].size())
+
+    # Print optimizer's state_dict
+    print("Optimizer's state_dict:")
+    for var_name in optimizer.state_dict():
+        print(var_name, "\t", optimizer.state_dict()[var_name])
+
     label_tracker = FileLabelTracker(
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
@@ -187,7 +212,7 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
-        test(model, device, test_loader)
+        # test(model, device, test_loader)
 
 
 if __name__ == '__main__':
