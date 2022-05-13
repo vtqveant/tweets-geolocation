@@ -18,14 +18,26 @@ class MvMFLayer(nn.Module):
 
     def forward(self, weights, euclidean_coord):
         vmf_weights = self.fc1(weights)
-        vmf_weights = F.softmax(vmf_weights, dim=0)
+        vmf_weights = F.softmax(vmf_weights, dim=1)
 
         d = torch.transpose(torch.matmul(self.mu, torch.transpose(euclidean_coord, 0, 1)), 0, 1)
         exponent = torch.exp(torch.mul(self.kappa, d))
+
         coeff = torch.div(self.kappa, torch.sinh(self.kappa))
+        denom = torch.full_like(coeff, 4 * 3.1415926536)
+        coeff = torch.div(coeff, denom)
+
         vmf = torch.mul(coeff, exponent)
         mvmf = torch.sum(torch.mul(vmf_weights, vmf), dim=1)
-        return torch.neg(torch.log(mvmf))
+        return mvmf
+
+
+def MvMF_loss(output, target):
+    """The loss (negative logarithm of a weighted sum of vMF components) equals zero when the MvMF is
+    equal to 1, in which case MvMF can be interpreted as a probability distribution over separate vMFs treated
+    as classes (probability of a tweet being submitted from a particular city, if vMFs are initialized with
+    coordinates of cities)."""
+    return F.l1_loss(torch.neg(torch.log(output)), target)
 
 
 def init_mvmf_weights(module):
@@ -45,3 +57,16 @@ def init_mvmf_weights(module):
             c = to_euclidean(np.random.randint(-90, 90), np.random.randint(-180, 180))
             cs.append(c)
         module.mu.data.copy_(torch.tensor(np.array(cs)))
+
+
+def unit_norm_mu_clipper(module):
+    """
+    This function should be passed to nn.Module.apply() after optimizer.step()
+
+    Keeps norm2(mu) == 1
+
+    https://discuss.pytorch.org/t/restrict-range-of-variable-during-gradient-descent/1933/3
+    """
+    if isinstance(module, MvMFLayer) and hasattr(module, 'mu'):
+        w = module.mu.data
+        w.div_(torch.linalg.vector_norm(w, 2, 1).reshape(-1, 1).expand_as(w))

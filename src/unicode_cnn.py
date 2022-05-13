@@ -8,7 +8,7 @@ from datetime import datetime
 
 from dataset_processor import IncaTweetsDataset
 from label_tracker import FileLabelTracker
-from mvmf_layer import MvMFLayer, init_mvmf_weights
+from mvmf_layer import MvMFLayer, init_mvmf_weights, MvMF_loss, unit_norm_mu_clipper
 
 # Based on MNIST implementation from git@github.com:pytorch/examples.git
 
@@ -67,7 +67,7 @@ class UnicodeCNN(nn.Module):
         t = self.fc1(x)
         t = F.relu(t)
         t = self.fc2(t)
-        t = F.softmax(t, dim=1)  # TODO check if this dimension is correct
+        t = F.softmax(t, dim=1) 
 
         # feature mixing
         q = torch.cat((x, t), 1)
@@ -101,10 +101,14 @@ def train(args, model, device, train_loader, optimizer, epoch):
         # loss = F.cross_entropy(output, geo_country_code, reduction='mean')  # TODO it was used for country cross-entropy
 
         # Task 2 - MvMF loss
-        target = torch.zeros(len(euclidean_coordinates)).to(device)
-        loss = F.mse_loss(output, target)
+        target = torch.zeros_like(output).to(device)
+        loss = MvMF_loss(output, target)
         loss.backward()
         optimizer.step()
+
+        # all mean directions ($\mu$) of component MvMF distributions must stay on the unit sphere
+        # (cities don't fly away)
+        model.apply(unit_norm_mu_clipper)
 
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.12f}'.format(
@@ -156,10 +160,10 @@ def main():
                         help='input batch size for training (default: 100)')
     parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 100)')
-    parser.add_argument('--epochs', type=int, default=1, metavar='N',
+    parser.add_argument('--epochs', type=int, default=20, metavar='N',
                         help='number of epochs to train (default: 3)')
-    parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',
-                        help='learning rate (default: 0.0001)')
+    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+                        help='learning rate (default: 0.01)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     parser.add_argument('--dry-run', action='store_true', default=False,
@@ -205,13 +209,17 @@ def main():
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
     )
-    train_dataset = IncaTweetsDataset(path='../data', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
+    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
     train_loader = DataLoader(train_dataset, **train_kwargs)
     test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
+    # start where we ended last time
+    # model.load_state_dict(torch.load('../snapshots/13-05-2022_18:50:37.pth'))
+
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
+        torch.save(model.state_dict(), '../snapshots/' + datetime.now().strftime("%d-%m-%Y_%H:%M:%S") + '.pth')
         # test(model, device, test_loader)
 
 
