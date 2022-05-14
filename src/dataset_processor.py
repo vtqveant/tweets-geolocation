@@ -4,7 +4,6 @@ from os import listdir
 from os.path import isfile, join
 import csv
 import random
-
 from typing import List
 
 import character_encoder

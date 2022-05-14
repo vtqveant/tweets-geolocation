@@ -13,6 +13,7 @@ from mvmf_layer import MvMFLayer, init_mvmf_weights, MvMF_loss, unit_norm_mu_cli
 # Based on MNIST implementation from git@github.com:pytorch/examples.git
 
 NUM_COUNTRY_CODES = 19  # 247 country codes defined by Twitter API, 19 in dataset
+NUM_VMF_DISTRIBUTIONS = 10000
 
 
 class UnicodeCNN(nn.Module):
@@ -42,7 +43,7 @@ class UnicodeCNN(nn.Module):
         self.fc5 = nn.Linear(in_features=1024, out_features=NUM_COUNTRY_CODES)
 
         # MvMF
-        self.mvmf = MvMFLayer(in_features=1024, num_distributions=10)
+        self.mvmf = MvMFLayer(in_features=1024, num_distributions=NUM_VMF_DISTRIBUTIONS)
 
     def forward(self, unicode_features, euclidean_coordinates):
         # convolutional layers
@@ -85,6 +86,14 @@ class UnicodeCNN(nn.Module):
         y = self.mvmf(mixed_features, euclidean_coordinates)
 
         return y
+
+
+def init_conv_weights(module):
+    if isinstance(module, nn.Linear):
+        torch.nn.init.xavier_uniform(module.weight)
+        module.bias.data.fill_(0.01)
+    if isinstance(module, nn.Conv1d):
+        torch.nn.init.xavier_uniform(module.weight)
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -162,8 +171,8 @@ def main():
                         help='input batch size for testing (default: 100)')
     parser.add_argument('--epochs', type=int, default=20, metavar='N',
                         help='number of epochs to train (default: 3)')
-    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
-                        help='learning rate (default: 0.001)')
+    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
+                        help='learning rate (default: 0.01)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     parser.add_argument('--dry-run', action='store_true', default=False,
@@ -190,6 +199,9 @@ def main():
     model = UnicodeCNN().to(device)
     print(model)
 
+    # initialization of linear and convolutional layers
+    model.apply(init_conv_weights)
+
     # initialization for MvMF layer
     model.apply(init_mvmf_weights)
 
@@ -215,7 +227,7 @@ def main():
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    model.load_state_dict(torch.load('../snapshots/14-05-2022_00:26:07.pth'))
+    # model.load_state_dict(torch.load('../snapshots/14-05-2022_00:26:07.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

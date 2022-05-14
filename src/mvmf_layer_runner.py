@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-from mvmf_layer import MvMFLayer, init_mvmf_weights
+from mvmf_layer import MvMFLayer, init_mvmf_weights, MvMF_loss
 from geometry import to_euclidean, to_geographical, norm2
 
 
@@ -31,14 +31,17 @@ def main():
     eucl_coord = torch.tensor(np.array([in1, in2]), dtype=torch.float32)
 
     # and the weights to be passed through a softmax
-    weights = torch.tensor(np.array([0.5, 0.1, 0.1, 0.2, 0., 0., 0.1, 0., 0., 0.]), dtype=torch.float32)
+    weights = torch.tensor(np.array([
+        [0.5, 0.1, 0.1, 0.2, 0., 0., 0.1, 0., 0., 0.],
+        [1.5, 0.1, 0.1, -2., 0., 0., 0.1, 0., 3., 0.]
+    ]), dtype=torch.float32)
 
     # the output is (should be) the probability of these coordinates w.r.t. to MvMF given weights
     y = model(weights, eucl_coord)
     print('Forward pass:', y)
 
     target = torch.zeros(len(eucl_coord))
-    loss = F.mse_loss(y, target)
+    loss = MvMF_loss(y, target)
     loss.backward()
 
     print('MvMF result: ', y)
