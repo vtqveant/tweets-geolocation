@@ -1,3 +1,5 @@
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -19,18 +21,18 @@ class MvMFLayer(nn.Module):
         self.fc1 = nn.Linear(in_features=in_features, out_features=num_distributions)
 
     def forward(self, weights, euclidean_coord):
-        vmf_weights = self.fc1(weights)
-        vmf_weights = F.softmax(vmf_weights, dim=1)
+        weights = self.fc1(weights)
+        vmf_weights = F.softmax(weights, dim=1)
 
         d = torch.matmul(euclidean_coord, torch.transpose(self.mu, 0, 1))
         exponent = torch.exp(torch.mul(self.kappa, d))
 
         coeff = torch.div(self.kappa, torch.sinh(self.kappa))
-        denom = torch.full_like(coeff, 4 * 3.1415926536)
-        coeff = torch.div(coeff, denom)
+        coeff = coeff.div_(4 * 3.1415926536)
 
         vmf = torch.mul(coeff, exponent)
-        mvmf = torch.sum(torch.mul(vmf_weights, vmf), dim=1)
+        t = torch.mul(vmf_weights, vmf)
+        mvmf = torch.sum(t, dim=1)
         return mvmf
 
 
@@ -58,7 +60,7 @@ def init_mvmf_weights(module):
         # TODO pick coordinates of most populated cities
         cs = []
         for i in range(module.mu.data.size(dim=0)):
-            c = to_euclidean(np.random.randint(-90, 90), np.random.randint(-180, 180))
+            c = to_euclidean(np.random.randint(-33.8689056, 5.2842873), np.random.randint(-73.9830625, -28.6341164))  # Brazil's bounding box
             cs.append(c)
         module.mu.data.copy_(torch.tensor(np.array(cs)))
 

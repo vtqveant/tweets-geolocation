@@ -6,7 +6,7 @@ from label_tracker import FileLabelTracker
 from unicode_cnn import UnicodeCNN
 
 model = UnicodeCNN()
-model.load_state_dict(torch.load('../snapshots/14-05-2022_13:30:26.pth'))
+model.load_state_dict(torch.load('../snapshots/15-05-2022_02:44:30.pth'))
 model.eval()
 
 # Print model's state_dict
@@ -14,7 +14,7 @@ print("Model's state_dict:")
 for param_tensor in model.state_dict():
     print(param_tensor, "\t", model.state_dict()[param_tensor].size())
 
-test_kwargs = {'batch_size': 4}
+test_kwargs = {'batch_size': 6}
 
 label_tracker = FileLabelTracker(
     languages_filename='inca_dataset_langs.json',
@@ -27,5 +27,6 @@ with torch.no_grad():
     for sample in test_loader:
         unicode_features = sample['matrix']
         euclidean_coordinates = sample['coordinates']
-        output = model(unicode_features, euclidean_coordinates)
-        print(output)
+        country_raw_weights, mvmf_pred = model(unicode_features, euclidean_coordinates)
+        print('country raw weights (apply argmax to obtain the country index)\n\t', country_raw_weights)
+        print('MvMF score (interpreted as a probability of the tweet being posted from this location\n\t', mvmf_pred)

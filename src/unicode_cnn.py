@@ -77,23 +77,23 @@ class UnicodeCNN(nn.Module):
         q = self.fc4(q)
         mixed_features = F.relu(q)
 
-        # country cross-entropy prediction
-        # y = self.fc5(mixed_features)
+        # Task 1: country prediction (this goes to a cross-entropy loss)
         # In PyTorch, the input is expected to contain raw, unnormalized scores for each class, so softmax
-        # after y is not needed
+        # after y1 is not needed
+        y1 = self.fc5(mixed_features)
 
-        # MvMF layer
-        y = self.mvmf(mixed_features, euclidean_coordinates)
+        # Task 2: MvMF layer (this goes to a MvMF loss)
+        y2 = self.mvmf(mixed_features, euclidean_coordinates)
 
-        return y
+        return y1, y2
 
 
 def init_conv_weights(module):
     if isinstance(module, nn.Linear):
-        torch.nn.init.xavier_uniform(module.weight)
+        torch.nn.init.xavier_uniform_(module.weight)
         module.bias.data.fill_(0.01)
     if isinstance(module, nn.Conv1d):
-        torch.nn.init.xavier_uniform(module.weight)
+        torch.nn.init.xavier_uniform_(module.weight)
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -101,23 +101,33 @@ def train(args, model, device, train_loader, optimizer, epoch):
     for batch_idx, sample in enumerate(train_loader):
         unicode_features = sample['matrix'].to(device)
         euclidean_coordinates = sample['coordinates'].to(device)
-        # geo_country_code = sample['geo_country_code'].to(device)
+        geo_country_code = sample['geo_country_code'].to(device)
 
         optimizer.zero_grad()
-        output = model(unicode_features, euclidean_coordinates)
+        output1, output2 = model(unicode_features, euclidean_coordinates)
 
         # Task 1 - country prediction
-        # loss = F.cross_entropy(output, geo_country_code, reduction='mean')  # TODO it was used for country cross-entropy
+        loss1 = F.cross_entropy(output1, geo_country_code, reduction='mean')
 
         # Task 2 - MvMF loss
-        target = torch.zeros_like(output).to(device)
-        loss = MvMF_loss(output, target)
+        target = torch.zeros_like(output2).to(device)
+        loss2 = MvMF_loss(output2, target)
+
+        # combined loss
+        combined_output = torch.add(loss1, loss2)
+        zero = torch.zeros_like(combined_output).to(device)
+        loss = F.l1_loss(combined_output, zero)
+
         loss.backward()
-        optimizer.step()
+
+        # gradient clipping
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=args.clip)
 
         # all mean directions ($\mu$) of component MvMF distributions must stay on the unit sphere
         # (cities don't fly away)
         model.apply(unit_norm_mu_clipper)
+
+        optimizer.step()
 
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.12f}'.format(
@@ -164,15 +174,17 @@ def test(model, device, test_loader):
 
 def main():
     # Training settings
-    parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-    parser.add_argument('--batch-size', type=int, default=100, metavar='N',
-                        help='input batch size for training (default: 100)')
+    parser = argparse.ArgumentParser(description='UnicodeCNN + MvMF')
+    parser.add_argument('--batch-size', type=int, default=400, metavar='N',
+                        help='input batch size for training (default: 400)')
     parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 100)')
-    parser.add_argument('--epochs', type=int, default=20, metavar='N',
+    parser.add_argument('--epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train (default: 3)')
-    parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
-                        help='learning rate (default: 0.01)')
+    parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',
+                        help='learning rate (default: 0.0001)')
+    parser.add_argument('--clip', type=float, default=4.0, metavar='CL',
+                        help='max_norm (clipping threshold) (default: 4.0)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
     parser.add_argument('--dry-run', action='store_true', default=False,
@@ -221,13 +233,13 @@ def main():
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
     )
-    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
+    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker, use_cache=True)  # TODO this is not a proper split, just to overfit once
     train_loader = DataLoader(train_dataset, **train_kwargs)
     test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    # model.load_state_dict(torch.load('../snapshots/14-05-2022_00:26:07.pth'))
+    # model.load_state_dict(torch.load('../snapshots/15-05-2022_02:32:54.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

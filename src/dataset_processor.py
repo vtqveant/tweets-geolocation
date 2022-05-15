@@ -15,11 +15,11 @@ from geometry import Coordinate, to_euclidean
 class IncaTweetsDataset(IterableDataset):
     """An iterator for training examples constructed from files in the dataset"""
 
-    def __init__(self, path: str, label_tracker: LabelTracker):
+    def __init__(self, path: str, label_tracker: LabelTracker, use_cache=False):
         super(IterableDataset, self).__init__()
         self._path = path
         self._label_tracker = label_tracker
-        self._file_processor = FileProcessor()
+        self._file_processor = FileProcessor(use_cache)
 
         self._filenames = [f for f in listdir(self._path) if isfile(join(self._path, f))]
         random.shuffle(self._filenames)
@@ -61,10 +61,21 @@ class IncaTweetsDataset(IterableDataset):
 
 
 class FileProcessor:
-    def __init__(self):
+    def __init__(self, use_cache=False):
         self._characterEncoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
+        self._use_cache = use_cache
+        self._cache = {}
 
     def process(self, path, filename) -> List:
+        if self._use_cache:
+            if filename not in self._cache.keys():
+                entries = self._process(path, filename)
+                self._cache[filename] = entries
+            return self._cache[filename]
+        else:
+            return self._process(path, filename)
+
+    def _process(self, path, filename) -> List:
         coord = self._parse_coordinates(filename)
         entries: List = []
         with open(join(path, filename), newline='') as f:
