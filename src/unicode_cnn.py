@@ -67,11 +67,11 @@ class UnicodeCNN(nn.Module):
         # language estimator
         t = self.fc1(x)
         t = F.relu(t)
-        t = self.fc2(t)
-        t = F.softmax(t, dim=1)
+        lang_pred_raw_scores = self.fc2(t)
+        # t = F.softmax(lang_pred_raw_scores, dim=1)
 
         # feature mixing
-        q = torch.cat((x, t), 1)
+        q = torch.cat((x, lang_pred_raw_scores), 1)
         q = self.fc3(q)
         q = F.relu(q)
         q = self.fc4(q)
@@ -85,7 +85,7 @@ class UnicodeCNN(nn.Module):
         # Task 2: MvMF layer (this goes to a MvMF loss)
         y2 = self.mvmf(mixed_features, euclidean_coordinates)
 
-        return y1, y2
+        return y1, y2, lang_pred_raw_scores
 
 
 def init_conv_weights(module):
@@ -100,23 +100,27 @@ def train(args, model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, sample in enumerate(train_loader):
         unicode_features = sample['matrix'].to(device)
-        euclidean_coordinates = sample['coordinates'].to(device)
-        geo_country_code = sample['geo_country_code'].to(device)
+        euclidean_coordinates_target = sample['coordinates'].to(device)
+        geo_country_code_target = sample['geo_country_code'].to(device)
+        language_target = sample['lang'].to(device)
 
         optimizer.zero_grad()
-        output1, output2 = model(unicode_features, euclidean_coordinates)
+        country_prediction_output, mvmf_output, language_prediction_output = model(unicode_features, euclidean_coordinates_target)
+
+        # Task 0 - language prediction
+        language_prediction_loss = F.cross_entropy(language_prediction_output, language_target, reduction='mean')
 
         # Task 1 - country prediction
-        loss1 = F.cross_entropy(output1, geo_country_code, reduction='mean')
+        country_prediction_loss = F.cross_entropy(country_prediction_output, geo_country_code_target, reduction='mean')
 
         # Task 2 - MvMF loss
-        target = torch.zeros_like(output2).to(device)
-        loss2 = MvMF_loss(output2, target)
+        target = torch.zeros_like(mvmf_output).to(device)
+        mvmf_loss = MvMF_loss(mvmf_output, target)
 
         # combined loss
-        combined_output = torch.add(loss1, loss2)
+        combined_output = torch.add(language_prediction_loss, torch.add(country_prediction_loss, mvmf_loss))
         zero = torch.zeros_like(combined_output).to(device)
-        loss = F.l1_loss(combined_output, zero)
+        loss = F.mse_loss(combined_output, zero)
 
         loss.backward()
 
@@ -175,14 +179,14 @@ def test(model, device, test_loader):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='UnicodeCNN + MvMF')
-    parser.add_argument('--batch-size', type=int, default=400, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=200, metavar='N',
                         help='input batch size for training (default: 400)')
     parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 100)')
     parser.add_argument('--epochs', type=int, default=100, metavar='N',
                         help='number of epochs to train (default: 3)')
-    parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',
-                        help='learning rate (default: 0.0001)')
+    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
+                        help='learning rate (default: 0.001)')
     parser.add_argument('--clip', type=float, default=4.0, metavar='CL',
                         help='max_norm (clipping threshold) (default: 4.0)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -239,7 +243,7 @@ def main():
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    # model.load_state_dict(torch.load('../snapshots/15-05-2022_02:32:54.pth'))
+    # model.load_state_dict(torch.load('../snapshots/15-05-2022_13:18:20.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
