@@ -1,5 +1,3 @@
-import math
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -17,7 +15,8 @@ class MvMFLayer(nn.Module):
     def __init__(self, in_features, num_distributions):
         super().__init__()
         self.kappa = nn.Parameter(torch.Tensor(num_distributions))
-        self.mu = nn.Parameter(torch.Tensor(num_distributions, 3))  # each mu must be of length 1, i.e. $||\mu_i||_2 = 1$
+        self.mu = nn.Parameter(
+            torch.Tensor(num_distributions, 3))  # each mu must be of length 1, i.e. $||\mu_i||_2 = 1$
         self.fc1 = nn.Linear(in_features=in_features, out_features=num_distributions)
 
     def forward(self, weights, euclidean_coord):
@@ -43,7 +42,7 @@ def MvMF_loss(output, target):
     as classes (probability of a tweet being submitted from a particular city, if vMFs are initialized with
     coordinates of cities).
     """
-    return F.l1_loss(torch.neg(torch.log(output)), target)
+    return F.mse_loss(torch.neg(torch.log(output)), target)
 
 
 def init_mvmf_weights(module):
@@ -60,7 +59,8 @@ def init_mvmf_weights(module):
         # TODO pick coordinates of most populated cities
         cs = []
         for i in range(module.mu.data.size(dim=0)):
-            c = to_euclidean(np.random.randint(-33.8689056, 5.2842873), np.random.randint(-73.9830625, -28.6341164))  # Brazil's bounding box
+            c = to_euclidean(np.random.randint(-33.8689056, 5.2842873),
+                             np.random.randint(-73.9830625, -28.6341164))  # Brazil's bounding box
             cs.append(c)
         module.mu.data.copy_(torch.tensor(np.array(cs)))
 
