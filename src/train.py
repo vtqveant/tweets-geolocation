@@ -68,7 +68,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
             if args.dry_run:
                 break
             print('Saving snapshot for epoch {}\n'.format(epoch))
-            torch.save(model.state_dict(), '../snapshots/' + datetime.now().strftime("%d-%m-%Y_%H:%M:%S") + '.pth')
+            torch.save(model.state_dict(), '../snapshots/' + datetime.now().strftime("%d-%m-%Y_%H:%M:%S_large") + '.pth')
 
 
 def test(model, device, test_loader):
@@ -107,7 +107,7 @@ def main():
                         help='input batch size for training (default: 400)')
     parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 100)')
-    parser.add_argument('--epochs', type=int, default=100, metavar='N',
+    parser.add_argument('--epochs', type=int, default=1, metavar='N',
                         help='number of epochs to train (default: 3)')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate (default: 0.001)')
@@ -161,13 +161,13 @@ def main():
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
     )
-    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker, use_cache=True)  # TODO this is not a proper split, just to overfit once
+    train_dataset = IncaTweetsDataset(path='../data', label_tracker=label_tracker, use_cache=False)  # TODO this is not a proper split, just to overfit once
     train_loader = DataLoader(train_dataset, **train_kwargs)
     test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    # model.load_state_dict(torch.load('../snapshots/15-05-2022_13:18:20.pth'))
+    model.load_state_dict(torch.load('../snapshots/16-05-2022_01:40:29.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

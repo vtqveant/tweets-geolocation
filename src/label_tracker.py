@@ -25,16 +25,24 @@ class FileLabelTracker(LabelTracker):
         with open(languages_filename, 'r') as f:
             self.languages = json.load(f)
             self.oov_lang_index = len(self.languages.keys())
+            self.language_by_index = {v: k for k, v in self.languages.items()}
         with open(country_codes_filename, 'r') as f:
             self.geo_country_codes = json.load(f)
             self.oov_country_code_index = len(self.geo_country_codes.keys())
+            self.country_by_index = {v: k for k, v in self.geo_country_codes.items()}
 
     def get_language_index(self, language):
         return self.languages[language] if language in self.languages.keys() else self.oov_lang_index
 
+    def get_language(self, index):
+        return self.language_by_index[index]
+
     def get_country_index(self, country_code):
         return self.geo_country_codes[country_code] if country_code in self.geo_country_codes.keys() \
             else self.oov_country_code_index
+
+    def get_country(self, index):
+        return self.country_by_index[index]
 
 
 class DictLabelTracker(LabelTracker):
