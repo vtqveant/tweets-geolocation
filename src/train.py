@@ -29,7 +29,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         language_target = sample['lang'].to(device)
 
         optimizer.zero_grad()
-        country_prediction_output, mvmf_output, language_prediction_output = model(unicode_features, euclidean_coordinates_target)
+        country_prediction_output, language_prediction_output, mvmf_output = model(unicode_features, euclidean_coordinates_target)
 
         # Task 0 - language prediction
         language_prediction_loss = F.cross_entropy(language_prediction_output, language_target, reduction='mean')
@@ -111,7 +111,7 @@ def main():
                         help='number of epochs to train (default: 3)')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate (default: 0.001)')
-    parser.add_argument('--clip', type=float, default=4.0, metavar='CL',
+    parser.add_argument('--clip', type=float, default=5.0, metavar='CL',
                         help='max_norm (clipping threshold) (default: 4.0)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')

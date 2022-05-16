@@ -77,4 +77,4 @@ class UnicodeCNN(nn.Module):
         # Task 2: MvMF layer (this goes to a MvMF loss)
         mvmf_score = self.mvmf(mixed_features, euclidean_coordinates)
 
-        return country_prediction_raw_scores, mvmf_score, language_prediction_raw_scores
+        return country_prediction_raw_scores, language_prediction_raw_scores, mvmf_score

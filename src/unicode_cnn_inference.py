@@ -27,7 +27,7 @@ with torch.no_grad():
     for sample in test_loader:
         unicode_features = sample['matrix']
         euclidean_coordinates = sample['coordinates']
-        country_raw_weights, mvmf_pred, lang_pred_raw_weights = model(unicode_features, euclidean_coordinates)
+        country_raw_weights, lang_pred_raw_weights, mvmf_pred = model(unicode_features, euclidean_coordinates)
 
         # print('country raw weights (apply argmax to obtain the country index)\n\t', country_raw_weights)
         # print('language raw weights\n\t', lang_pred_raw_weights)

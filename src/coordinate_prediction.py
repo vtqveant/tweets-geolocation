@@ -13,10 +13,7 @@ def convert_unicode_features_to_tensor(matrix):
     return torch.transpose(torch.tensor([[float(i - 48) for i in s] for s in matrix], dtype=torch.float32), 0, 1)
 
 
-def predict_coord_grid_search(text):
-    num_lat_samples = 10
-    num_lon_samples = 101
-
+def predict_coord_grid_search(snapshot, text, num_lat_samples, num_lon_samples):
     # 1. define BBox for South America
     lat_min = -56.0
     lat_max = 13.0
@@ -25,7 +22,7 @@ def predict_coord_grid_search(text):
 
     # 2. load model
     model = UnicodeCNN()
-    model.load_state_dict(torch.load('../snapshots/16-05-2022_01:42:37_small_100epochs.pth'))
+    model.load_state_dict(torch.load(snapshot))
     model.eval()
 
     # 3. unicode encoder
@@ -43,7 +40,7 @@ def predict_coord_grid_search(text):
 
             # create a batch from all points sampled from the longitude range
             coordinates = torch.stack(euclidean_coordinates)
-            _, score, _ = model(features, coordinates)
+            _, _, score = model(features, coordinates)
 
             # join coordinates with MvMF scores to get a list of (x, y, z, score) entries
             b = torch.cat([coordinates, torch.reshape(score, (-1, 1))], dim=1).numpy()
@@ -53,8 +50,13 @@ def predict_coord_grid_search(text):
 
 
 def main():
-    b = predict_coord_grid_search('😉😁 “La vida es un viaje y quien viaja vive dos veces”.  – Omar Khayyam https://t.co/TPvK5BYZ2x;1429968360448610313')
-    print(b)
+    results = predict_coord_grid_search(
+        '../snapshots/16-05-2022_03:50:17_large.pth',
+        '😉😁 “La vida es un viaje y quien viaja vive dos veces”.  – Omar Khayyam https://t.co/TPvK5BYZ2x;1429968360448610313',
+        num_lat_samples=100,
+        num_lon_samples=100
+    )
+    print(results)
 
 
 if __name__ == '__main__':
