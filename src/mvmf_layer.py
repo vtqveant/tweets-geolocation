@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-from geometry import to_euclidean
 
 
 class MvMFLayer(nn.Module):
@@ -43,36 +41,3 @@ def MvMF_loss(output, target):
     coordinates of cities).
     """
     return F.mse_loss(torch.neg(torch.log(output)), target)
-
-
-def init_mvmf_weights(module):
-    """
-    This function should be passed to nn.Module.apply()
-
-        model = MvMFLayer(in_features=1024, num_distributions=10000)
-        model.apply(init_mvmf_weights)
-    """
-    if isinstance(module, MvMFLayer):
-        # value from the paper empirically observed to correspond to a st.d. about the size of a large city
-        module.kappa.data.fill_(10.0)
-
-        # TODO pick coordinates of most populated cities
-        cs = []
-        for i in range(module.mu.data.size(dim=0)):
-            c = to_euclidean(np.random.randint(-33.8689056, 5.2842873),
-                             np.random.randint(-73.9830625, -28.6341164))  # Brazil's bounding box
-            cs.append(c)
-        module.mu.data.copy_(torch.tensor(np.array(cs)))
-
-
-def unit_norm_mu_clipper(module):
-    """
-    This function should be passed to nn.Module.apply() after optimizer.step()
-
-    Keeps norm2(mu) == 1
-
-    https://discuss.pytorch.org/t/restrict-range-of-variable-during-gradient-descent/1933/3
-    """
-    if isinstance(module, MvMFLayer) and hasattr(module, 'mu'):
-        w = module.mu.data
-        w.div_(torch.linalg.vector_norm(w, 2, 1).reshape(-1, 1).expand_as(w))

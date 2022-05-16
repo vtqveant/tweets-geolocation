@@ -8,10 +8,10 @@ from geometry import to_geographical
 
 def main():
     results = predict_coord_grid_search(
-        '../snapshots/16-05-2022_03:50:17_large.pth',
-        'Diego Carrasco? Como decía el Bonva, cuando era weno era malo!',
-        num_lat_samples=100,
-        num_lon_samples=150
+        '../snapshots/16-05-2022_19:08:13_1000dist_large_dataset.pth',
+        'Mí negro bisexual preparándose para darnos verga a mí y mi amiga.',
+        num_lat_samples=200,
+        num_lon_samples=200
     )
 
     xs, ys, ss = [], [], []

@@ -1,3 +1,5 @@
+import csv
+import numpy as np
 import argparse
 import torch
 from torch import nn
@@ -8,7 +10,8 @@ from datetime import datetime
 
 from dataset_processor import IncaTweetsDataset
 from label_tracker import FileLabelTracker
-from mvmf_layer import init_mvmf_weights, MvMF_loss, unit_norm_mu_clipper
+from mvmf_layer import MvMFLayer, MvMF_loss
+from src.geometry import to_euclidean
 from unicode_cnn import UnicodeCNN
 
 
@@ -18,6 +21,49 @@ def init_conv_weights(module):
         module.bias.data.fill_(0.01)
     if isinstance(module, nn.Conv1d):
         torch.nn.init.xavier_uniform_(module.weight)
+
+
+def init_mvmf_weights(module):
+    """
+    This function should be passed to nn.Module.apply()
+
+        model = MvMFLayer(in_features=1024, num_distributions=10000)
+        model.apply(init_mvmf_weights)
+    """
+    if isinstance(module, MvMFLayer):
+        # value from the paper empirically observed to correspond to a st.d. about the size of a large city
+        module.kappa.data.fill_(10.0)
+
+        cs = []
+        with open('cities_south_america.csv', newline='') as f:
+            reader = csv.DictReader(f, delimiter=',')
+            rows = list(reader)
+
+            # MvMF Layer expects module.mu.data.size(dim=0) values for $\mu$
+            if len(rows) < module.mu.data.size(dim=0):
+                print('WARNING: not enough coordinates for MvMF Layer initialization')
+                quit()
+
+            for i, row in enumerate(rows):
+                if i == module.mu.data.size(dim=0):
+                    break
+                c = to_euclidean(float(row['lat']), float(row['lon']))
+                cs.append(c)
+
+        module.mu.data.copy_(torch.tensor(np.array(cs)))
+
+
+def unit_norm_mu_clipper(module):
+    """
+    This function should be passed to nn.Module.apply() after optimizer.step()
+
+    Keeps norm2(mu) == 1
+
+    https://discuss.pytorch.org/t/restrict-range-of-variable-during-gradient-descent/1933/3
+    """
+    if isinstance(module, MvMFLayer) and hasattr(module, 'mu'):
+        w = module.mu.data
+        w.div_(torch.linalg.vector_norm(w, 2, 1).reshape(-1, 1).expand_as(w))
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -68,42 +114,13 @@ def train(args, model, device, train_loader, optimizer, epoch):
             if args.dry_run:
                 break
             print('Saving snapshot for epoch {}\n'.format(epoch))
-            torch.save(model.state_dict(), '../snapshots/' + datetime.now().strftime("%d-%m-%Y_%H:%M:%S_large") + '.pth')
-
-
-def test(model, device, test_loader):
-    model.eval()
-    test_loss = 0
-    correct = 0
-    with torch.no_grad():
-        for sample in test_loader:
-            unicode_features = sample['matrix'].to(device)
-            euclidean_coordinates = sample['coordinates'].to(device)
-            # geo_country_code = sample['geo_country_code'].to(device)
-
-            # Task 1 - country code prediction
-            # test_loss += F.cross_entropy(output, target).item()  # sum up batch loss
-            # pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            # correct += pred.eq(target.view_as(pred)).sum().item()
-
-            # Task 2 = MvMF loss
-            target = torch.zeros(len(euclidean_coordinates)).to(device)
-            output = model(unicode_features, euclidean_coordinates)
-
-    test_loss /= len(test_loader.dataset)
-
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss,
-        correct,
-        len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)
-    ))
+            torch.save(model.state_dict(), '../snapshots/' + datetime.now().strftime("%d-%m-%Y_%H:%M:%S_1000dist_large_dataset") + '.pth')
 
 
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='UnicodeCNN + MvMF')
-    parser.add_argument('--batch-size', type=int, default=200, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=400, metavar='N',
                         help='input batch size for training (default: 400)')
     parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 100)')
@@ -111,7 +128,7 @@ def main():
                         help='number of epochs to train (default: 3)')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate (default: 0.001)')
-    parser.add_argument('--clip', type=float, default=5.0, metavar='CL',
+    parser.add_argument('--clip', type=float, default=4.0, metavar='CL',
                         help='max_norm (clipping threshold) (default: 4.0)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                         help='disables CUDA training')
@@ -167,7 +184,7 @@ def main():
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    model.load_state_dict(torch.load('../snapshots/16-05-2022_01:40:29.pth'))
+    # model.load_state_dict(torch.load('../snapshots/16-05-2022_19:08:13_1000dist_large_dataset.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

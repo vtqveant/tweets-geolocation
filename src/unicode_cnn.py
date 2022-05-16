@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from mvmf_layer import MvMFLayer
 
 NUM_COUNTRY_CODES = 19  # 247 country codes defined by Twitter API, 19 in dataset
-NUM_VMF_DISTRIBUTIONS = 10000
+NUM_VMF_DISTRIBUTIONS = 1000
 
 
 class UnicodeCNN(nn.Module):
