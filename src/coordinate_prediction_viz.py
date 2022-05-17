@@ -8,9 +8,9 @@ from geometry import to_geographical
 
 def main():
     results = predict_coord_grid_search(
-        '../snapshots/16-05-2022_19:08:13_1000dist_large_dataset.pth',
-        'Mí negro bisexual preparándose para darnos verga a mí y mi amiga.',
-        num_lat_samples=200,
+        '../snapshots/17-05-2022_10:26:36_1000dist_large_dataset.pth',
+        '🤠BUENAS NOCHES.... BENDICIONES ❤️ en Parque Principal Solano Caquetá',
+        num_lat_samples=100,
         num_lon_samples=200
     )
 

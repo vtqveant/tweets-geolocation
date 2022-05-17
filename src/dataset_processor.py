@@ -5,6 +5,7 @@ from os.path import isfile, join
 import csv
 import random
 from typing import List
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import character_encoder
 from character_encoder import CharacterEncoder
@@ -15,11 +16,11 @@ from geometry import Coordinate, to_euclidean
 class IncaTweetsDataset(IterableDataset):
     """An iterator for training examples constructed from files in the dataset"""
 
-    def __init__(self, path: str, label_tracker: LabelTracker, use_cache=False):
+    def __init__(self, path: str, label_tracker: LabelTracker):
         super(IterableDataset, self).__init__()
         self._path = path
         self._label_tracker = label_tracker
-        self._file_processor = FileProcessor(use_cache)
+        self._file_processor = FileProcessor()
 
         self._filenames = [f for f in listdir(self._path) if isfile(join(self._path, f))]
         random.shuffle(self._filenames)
@@ -61,30 +62,32 @@ class IncaTweetsDataset(IterableDataset):
 
 
 class FileProcessor:
-    def __init__(self, use_cache=False):
-        self._characterEncoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
-        self._use_cache = use_cache
-        self._cache = {}
+    def __init__(self):
+        self.NUM_WORKERS = 8
+        pass
 
     def process(self, path, filename) -> List:
-        if self._use_cache:
-            if filename not in self._cache.keys():
-                entries = self._process(path, filename)
-                self._cache[filename] = entries
-            return self._cache[filename]
-        else:
-            return self._process(path, filename)
+        return self._process(path, filename)
 
     def _process(self, path, filename) -> List:
-        coord = self._parse_coordinates(filename)
+        coord = FileProcessor._parse_coordinates(filename)
         entries: List = []
         with open(join(path, filename), newline='') as f:
-            reader = csv.DictReader(f, delimiter=';')
-            for row in reader:
-                matrix = self._characterEncoder.encode(row['text'])
-                training_example = TrainingExample(matrix, row['lang'], row['geo_country_code'], coord)
-                entries.append(training_example)
+            # read an entire file to a list and process rows in parallel to imporove throughput
+            # at the expense of memory consumption
+            rows = [row for row in csv.DictReader(f, delimiter=';')]
+            with ThreadPoolExecutor(max_workers=self.NUM_WORKERS) as executor:
+                futures = [executor.submit(FileProcessor._encode, row) for row in rows]
+                for future in as_completed(futures):
+                    matrix, lang, geo_country_code = future.result()
+                    training_example = TrainingExample(matrix, lang, geo_country_code, coord)
+                    entries.append(training_example)
         return entries
+
+    @staticmethod
+    def _encode(row):
+        encoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
+        return encoder.encode(row['text']), row['lang'], row['geo_country_code']
 
     @staticmethod
     def _parse_coordinates(filename):

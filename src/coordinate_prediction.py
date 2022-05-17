@@ -51,7 +51,7 @@ def predict_coord_grid_search(snapshot, text, num_lat_samples, num_lon_samples):
 
 def main():
     results = predict_coord_grid_search(
-        '../snapshots/16-05-2022_03:50:17_large.pth',
+        '../snapshots/17-05-2022_01:44:55_1000dist_large_dataset.pth',
         '😉😁 “La vida es un viaje y quien viaja vive dos veces”.  – Omar Khayyam https://t.co/TPvK5BYZ2x;1429968360448610313',
         num_lat_samples=100,
         num_lon_samples=100

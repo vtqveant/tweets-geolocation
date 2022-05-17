@@ -1,8 +1,9 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-from mvmf_layer import MvMFLayer, init_mvmf_weights, MvMF_loss
+from mvmf_layer import MvMFLayer, MvMF_loss
 from geometry import to_euclidean, to_geographical, norm2
+from train import init_mvmf_weights
 
 
 def main():

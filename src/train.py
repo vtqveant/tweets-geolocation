@@ -11,7 +11,7 @@ from datetime import datetime
 from dataset_processor import IncaTweetsDataset
 from label_tracker import FileLabelTracker
 from mvmf_layer import MvMFLayer, MvMF_loss
-from src.geometry import to_euclidean
+from geometry import to_euclidean
 from unicode_cnn import UnicodeCNN
 
 
@@ -124,7 +124,7 @@ def main():
                         help='input batch size for training (default: 400)')
     parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 100)')
-    parser.add_argument('--epochs', type=int, default=1, metavar='N',
+    parser.add_argument('--epochs', type=int, default=3, metavar='N',
                         help='number of epochs to train (default: 3)')
     parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
                         help='learning rate (default: 0.001)')
@@ -178,13 +178,13 @@ def main():
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
     )
-    train_dataset = IncaTweetsDataset(path='../data', label_tracker=label_tracker, use_cache=False)  # TODO this is not a proper split, just to overfit once
+    train_dataset = IncaTweetsDataset(path='../data', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
     train_loader = DataLoader(train_dataset, **train_kwargs)
     test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    # model.load_state_dict(torch.load('../snapshots/16-05-2022_19:08:13_1000dist_large_dataset.pth'))
+    model.load_state_dict(torch.load('../snapshots/17-05-2022_10:26:36_1000dist_large_dataset.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
