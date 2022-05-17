@@ -8,8 +8,9 @@ from geometry import to_geographical
 
 def main():
     results = predict_coord_grid_search(
-        '../snapshots/17-05-2022_13:53:05.pth',
-        'Ánimo banda, ya es septiembre, casi Halloween, cerca de Día de Muertos, saboreando Navidad, acariciando el 2022.',
+        '../snapshots/17-05-2022_22:22:27.pth',
+        # 'Soy fiel creyente de que si oras, llega.  #FelizJueves 🌥',
+        '@___nobodyknows Ayyy yo estoy caducada ya desde el 2018 y no renuevo 😢',
         num_lat_samples=100,
         num_lon_samples=150
     )

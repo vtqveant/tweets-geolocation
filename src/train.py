@@ -88,7 +88,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         mvmf_loss = MvMF_loss(mvmf_output, target)
 
         # combined loss
-        combined_output = torch.add(language_prediction_loss, torch.add(country_prediction_loss, mvmf_loss))
+        combined_output = torch.mean(torch.stack([language_prediction_loss, country_prediction_loss, mvmf_loss]))
         zero = torch.zeros_like(combined_output).to(device)
         loss = F.mse_loss(combined_output, zero)
 
@@ -162,7 +162,8 @@ def main():
     # initialization for MvMF layer
     model.apply(init_mvmf_weights)
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    # weight_decay here means L2 regularization, s. https://stackoverflow.com/questions/42704283/adding-l1-l2-regularization-in-pytorch
+    optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
 
     # Print model's state_dict
     print("Model's state_dict:")
@@ -178,13 +179,13 @@ def main():
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
     )
-    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
+    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)
     train_loader = DataLoader(train_dataset, **train_kwargs)
     test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    # model.load_state_dict(torch.load('../snapshots/17-05-2022_13:53:05.pth'))
+    # model.load_state_dict(torch.load('../snapshots/17-05-2022_22:22:27.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
