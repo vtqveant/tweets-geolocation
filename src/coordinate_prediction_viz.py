@@ -8,10 +8,10 @@ from geometry import to_geographical
 
 def main():
     results = predict_coord_grid_search(
-        '../snapshots/17-05-2022_10:26:36_1000dist_large_dataset.pth',
-        '🤠BUENAS NOCHES.... BENDICIONES ❤️ en Parque Principal Solano Caquetá',
+        '../snapshots/17-05-2022_13:53:05.pth',
+        'Ánimo banda, ya es septiembre, casi Halloween, cerca de Día de Muertos, saboreando Navidad, acariciando el 2022.',
         num_lat_samples=100,
-        num_lon_samples=200
+        num_lon_samples=150
     )
 
     xs, ys, ss = [], [], []

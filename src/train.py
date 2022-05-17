@@ -114,7 +114,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
             if args.dry_run:
                 break
             print('Saving snapshot for epoch {}\n'.format(epoch))
-            torch.save(model.state_dict(), '../snapshots/' + datetime.now().strftime("%d-%m-%Y_%H:%M:%S_1000dist_large_dataset") + '.pth')
+            torch.save(model.state_dict(), '../snapshots/' + datetime.now().strftime("%d-%m-%Y_%H:%M:%S") + '.pth')
 
 
 def main():
@@ -178,13 +178,13 @@ def main():
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
     )
-    train_dataset = IncaTweetsDataset(path='../data', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
+    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)  # TODO this is not a proper split, just to overfit once
     train_loader = DataLoader(train_dataset, **train_kwargs)
     test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    model.load_state_dict(torch.load('../snapshots/17-05-2022_10:26:36_1000dist_large_dataset.pth'))
+    # model.load_state_dict(torch.load('../snapshots/17-05-2022_13:53:05.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

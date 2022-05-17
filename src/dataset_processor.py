@@ -70,39 +70,39 @@ class FileProcessor:
         return self._process(path, filename)
 
     def _process(self, path, filename) -> List:
-        coord = FileProcessor._parse_coordinates(filename)
+        # coord = FileProcessor._parse_coordinates(filename)
         entries: List = []
         with open(join(path, filename), newline='') as f:
-            # read an entire file to a list and process rows in parallel to imporove throughput
+            # read an entire file to a list and process rows in parallel to improve throughput
             # at the expense of memory consumption
             rows = [row for row in csv.DictReader(f, delimiter=';')]
             with ThreadPoolExecutor(max_workers=self.NUM_WORKERS) as executor:
                 futures = [executor.submit(FileProcessor._encode, row) for row in rows]
                 for future in as_completed(futures):
-                    matrix, lang, geo_country_code = future.result()
-                    training_example = TrainingExample(matrix, lang, geo_country_code, coord)
+                    matrix, lang, geo_country_code, lat, lon = future.result()
+                    training_example = TrainingExample(matrix, lang, geo_country_code, lat, lon)
                     entries.append(training_example)
         return entries
 
     @staticmethod
     def _encode(row):
         encoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
-        return encoder.encode(row['text']), row['lang'], row['geo_country_code']
+        return encoder.encode(row['text']), row['lang'], row['geo_country_code'], row['lat'], row['lon']
 
-    @staticmethod
-    def _parse_coordinates(filename):
-        idx = filename.find('_')
-        lat = filename[0:idx]
-        lon = filename[idx + 1:filename.find('.csv')]
-        return Coordinate(lat, lon)
+    # @staticmethod
+    # def _parse_coordinates(filename):
+    #     idx = filename.find('_')
+    #     lat = filename[0:idx]
+    #     lon = filename[idx + 1:filename.find('.csv')]
+    #     return Coordinate(lat, lon)
 
 
 class TrainingExample:
-    def __init__(self, matrix: List[List[str]], lang: str, geo_country_code: str, coordinate: Coordinate):
+    def __init__(self, matrix: List[List[str]], lang: str, geo_country_code: str, lat: str, lon: str):
         self.matrix = matrix
         self.lang = lang
         self.geo_country_code = geo_country_code
-        self.coord = coordinate
+        self.coord = Coordinate(lat, lon)
 
 
 def main():
