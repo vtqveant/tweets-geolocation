@@ -13,7 +13,7 @@ using Vincenty's distance formula).
 
 The model is a rather straightforward implementation of a UnicodeCNN architecture from (Izbicki et al., 2019), 
 done in PyTorch from scratch. Some adjustments of the initial architecture were introduced
-in order to make use of the properties of the dataset. 
+in order to take advantage of the properties of the dataset. 
 
 The model is a character-level CNN-based classifier, trained in a multi-task regime for:
 
