@@ -23,11 +23,11 @@ The model is a character-level CNN-based classifier, trained in a multi-task reg
 
 Language and country prediction were used to achieve effects of regularization for a CNN backbone, which is hard 
 to train using only an MvMF loss. We do not provide an evaluation of their performance in this challenge. However, 
-their results might be useful for other downstream tasks, as well as used separately from the geolocation task using 
+their results might be useful for other downstream tasks, or can be used separately from the geolocation task using 
 the same model presented here.
 
 The city prediction task is performed by calculating weights of a mixture of von Mises-Fisher distributions (MvMF)
-with mean directions set to coordinates of cities in South America, which are not modified during training. 
+with mean directions set to the coordinates of cities in South America, which are not modified during training. 
 
 The final prediction of a geolocation of a tweet is done by computing a center of mass of top-3 highest ranked
 cities (using computed MvMF weights as masses) in the city prediction task. Although approximate, this result 
