@@ -30,7 +30,7 @@ class MvMFLayer(nn.Module):
         vmf = torch.mul(coeff, exponent)
         t = torch.mul(vmf_weights, vmf)
         mvmf = torch.sum(t, dim=1)
-        return mvmf
+        return mvmf, vmf_weights
 
 
 def MvMF_loss(output, target):

@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import torch
 
@@ -13,7 +14,33 @@ def convert_unicode_features_to_tensor(matrix):
     return torch.transpose(torch.tensor([[float(i - 48) for i in s] for s in matrix], dtype=torch.float32), 0, 1)
 
 
-def predict_coord_grid_search(snapshot, text, num_lat_samples, num_lon_samples):
+def predict_coord_center_of_mass(model: UnicodeCNN, texts: List[str]):
+    """
+    Computes a center of mass of top-3 $\\mu$-s of an MvMF layer using vMF weights computed for the text.
+    """
+    encoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
+    unicode_features = torch.stack([convert_unicode_features_to_tensor(encoder.encode(t)) for t in texts])
+
+    model.eval()
+    with torch.no_grad():
+        # predict w.r.t. to dummy coordinates 'cause vMF weights do not depend on coordinates
+        dummy_coordinates = torch.zeros([len(texts), 3])
+        _, _, score, vmf_weights = model(unicode_features, dummy_coordinates)
+
+    result = []
+    weights = vmf_weights.detach().numpy()
+    mu = model.get_parameter('mvmf.mu').detach()
+    for w in weights:
+        indices = np.argpartition(w, -3)[-3:]
+        weights_top3 = w[indices]
+        mu_top3 = mu[indices]
+        center_of_mass = np.average(mu_top3, axis=0, weights=weights_top3)
+        result.append(center_of_mass)
+
+    return result
+
+
+def predict_coord_grid_search(snapshot: str, text: str, num_lat_samples: int, num_lon_samples: int):
     # 1. define BBox for South America
     lat_min = -56.0
     lat_max = 13.0
@@ -47,17 +74,3 @@ def predict_coord_grid_search(snapshot, text, num_lat_samples, num_lon_samples):
             results.extend(b)
 
     return np.array(results)
-
-
-def main():
-    results = predict_coord_grid_search(
-        '../snapshots/17-05-2022_01:44:55_1000dist_large_dataset.pth',
-        '😉😁 “La vida es un viaje y quien viaja vive dos veces”.  – Omar Khayyam https://t.co/TPvK5BYZ2x;1429968360448610313',
-        num_lat_samples=100,
-        num_lon_samples=100
-    )
-    print(results)
-
-
-if __name__ == '__main__':
-    main()

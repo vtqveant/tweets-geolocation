@@ -16,14 +16,16 @@ from geometry import Coordinate, to_euclidean
 class IncaTweetsDataset(IterableDataset):
     """An iterator for training examples constructed from files in the dataset"""
 
-    def __init__(self, path: str, label_tracker: LabelTracker):
+    def __init__(self, path: str, label_tracker: LabelTracker, shuffle=True):
         super(IterableDataset, self).__init__()
         self._path = path
         self._label_tracker = label_tracker
         self._file_processor = FileProcessor()
 
         self._filenames = [f for f in listdir(self._path) if isfile(join(self._path, f))]
-        random.shuffle(self._filenames)
+
+        if shuffle:
+            random.shuffle(self._filenames)
 
         self._num_samples = None
 
@@ -37,6 +39,7 @@ class IncaTweetsDataset(IterableDataset):
             entries = self._file_processor.process(self._path, filename)
             for entry in entries:
                 yield {
+                    "text": entry.text,
                     "matrix": self._to_tensor(entry.matrix),
                     "coordinates": torch.tensor(to_euclidean(entry.coord.lat, entry.coord.lon), dtype=torch.float32),
                     "lang": self._label_tracker.get_language_index(entry.lang),
@@ -70,7 +73,6 @@ class FileProcessor:
         return self._process(path, filename)
 
     def _process(self, path, filename) -> List:
-        # coord = FileProcessor._parse_coordinates(filename)
         entries: List = []
         with open(join(path, filename), newline='') as f:
             # read an entire file to a list and process rows in parallel to improve throughput
@@ -79,46 +81,21 @@ class FileProcessor:
             with ThreadPoolExecutor(max_workers=self.NUM_WORKERS) as executor:
                 futures = [executor.submit(FileProcessor._encode, row) for row in rows]
                 for future in as_completed(futures):
-                    matrix, lang, geo_country_code, lat, lon = future.result()
-                    training_example = TrainingExample(matrix, lang, geo_country_code, lat, lon)
+                    text, matrix, lang, geo_country_code, lat, lon = future.result()
+                    training_example = TrainingExample(text, matrix, lang, geo_country_code, lat, lon)
                     entries.append(training_example)
         return entries
 
     @staticmethod
     def _encode(row):
         encoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
-        return encoder.encode(row['text']), row['lang'], row['geo_country_code'], row['lat'], row['lon']
-
-    # @staticmethod
-    # def _parse_coordinates(filename):
-    #     idx = filename.find('_')
-    #     lat = filename[0:idx]
-    #     lon = filename[idx + 1:filename.find('.csv')]
-    #     return Coordinate(lat, lon)
+        return row['text'], encoder.encode(row['text']), row['lang'], row['geo_country_code'], row['lat'], row['lon']
 
 
 class TrainingExample:
-    def __init__(self, matrix: List[List[str]], lang: str, geo_country_code: str, lat: str, lon: str):
+    def __init__(self, text: str, matrix: List[List[str]], lang: str, geo_country_code: str, lat: str, lon: str):
+        self.text = text
         self.matrix = matrix
         self.lang = lang
         self.geo_country_code = geo_country_code
         self.coord = Coordinate(lat, lon)
-
-
-def main():
-    label_tracker = FileLabelTracker(
-        languages_filename='inca_dataset_langs.json',
-        country_codes_filename='inca_dataset_geo_country_codes.json'
-    )
-    dataset = IncaTweetsDataset(path='../data', label_tracker=label_tracker)
-    # train_set = [x for _, x in zip(range(10), dataset)]
-    # print(train_set)
-
-    train_set = [x for _, x in zip(range(10), torch.utils.data.DataLoader(dataset, num_workers=0))]
-    # train_set = [x for x in torch.utils.data.DataLoader(dataset, num_workers=0)]
-    # print(len(dataset))
-    print(train_set)
-
-
-if __name__ == '__main__':
-    main()
