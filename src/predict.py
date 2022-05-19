@@ -19,7 +19,7 @@ def predict(text):
         eval_kwargs.update(cuda_kwargs)
 
     model = UnicodeCNN()
-    model.load_state_dict(torch.load('../snapshots/19-05-2022_19:26:05.pth'))
+    model.load_state_dict(torch.load('../snapshots/weights.pth'))
     model.eval()
 
     [result] = predict_coord_center_of_mass(model, [text])

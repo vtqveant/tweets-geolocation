@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import character_encoder
 from character_encoder import CharacterEncoder
-from label_tracker import LabelTracker, FileLabelTracker
+from label_tracker import LabelTracker
 from geometry import Coordinate, to_euclidean
 
 

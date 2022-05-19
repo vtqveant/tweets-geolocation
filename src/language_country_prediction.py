@@ -6,13 +6,8 @@ from label_tracker import FileLabelTracker
 from unicode_cnn import UnicodeCNN
 
 model = UnicodeCNN()
-model.load_state_dict(torch.load('../snapshots/19-05-2022_19:26:05.pth'))
+model.load_state_dict(torch.load('../snapshots/weights.pth'))
 model.eval()
-
-# Print model's state_dict
-print("Model's state_dict:")
-for param_tensor in model.state_dict():
-    print(param_tensor, "\t", model.state_dict()[param_tensor].size())
 
 test_kwargs = {'batch_size': 10}
 
@@ -20,7 +15,7 @@ label_tracker = FileLabelTracker(
     languages_filename='inca_dataset_langs.json',
     country_codes_filename='inca_dataset_geo_country_codes.json'
 )
-test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
+test_dataset = IncaTweetsDataset(path='../splits/eval', label_tracker=label_tracker)
 test_loader = DataLoader(test_dataset, **test_kwargs)
 
 with torch.no_grad():
@@ -32,7 +27,7 @@ with torch.no_grad():
         # print('country raw weights (apply argmax to obtain the country index)\n\t', country_raw_weights)
         # print('language raw weights\n\t', lang_pred_raw_weights)
 
-        print('MvMF score (interpreted as a score of the tweet being posted from this location\n\t', mvmf_pred)
+        print('MvMF score\t', mvmf_pred)
 
         country = [label_tracker.get_country(i) for i in torch.argmax(country_raw_weights, dim=1).numpy()]
         print(country)

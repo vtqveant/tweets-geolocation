@@ -51,4 +51,4 @@ if __name__ == '__main__':
     eval_dataset = IncaTweetsDataset(path='../splits/eval', label_tracker=label_tracker, shuffle=False)
     loader = DataLoader(eval_dataset, **eval_kwargs)
 
-    evaluate(loader, '../snapshots/19-05-2022_19:26:05.pth', max_batches=10)
+    evaluate(loader, '../snapshots/weights.pth', max_batches=10)
