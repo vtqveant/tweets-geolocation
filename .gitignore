@@ -20,5 +20,6 @@ build/
 data/
 splits/
 snapshots/
+worldcities/
 *.zip
 eda/.ipynb_checkpoints/
