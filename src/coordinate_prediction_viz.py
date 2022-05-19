@@ -8,11 +8,13 @@ from geometry import to_geographical
 
 def main():
     results = predict_coord_grid_search(
-        '../snapshots/17-05-2022_22:22:27.pth',
-        # 'Soy fiel creyente de que si oras, llega.  #FelizJueves 🌥',
-        '@___nobodyknows Ayyy yo estoy caducada ya desde el 2018 y no renuevo 😢',
+        '../snapshots/19-05-2022_09:16:16.pth',
+        # '@JLGamboa_Velez @MaytaTristan @CayetanoHeredia @INS_Peru Jorge, si te fijas en las redes, esa opinión',
+        # 'Um cabelo arrumado quem não gosta😍',
+        'Essa máquina é do meu irmão em Cristo @glenio.josafa @vera.corcino em Vilhena, Rondonia, Brazil',
+        # '@___nobodyknows Ayyy yo estoy caducada ya desde el 2018 y no renuevo 😢',
         num_lat_samples=100,
-        num_lon_samples=150
+        num_lon_samples=100
     )
 
     xs, ys, ss = [], [], []

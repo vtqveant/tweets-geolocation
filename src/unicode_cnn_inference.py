@@ -6,7 +6,7 @@ from label_tracker import FileLabelTracker
 from unicode_cnn import UnicodeCNN
 
 model = UnicodeCNN()
-model.load_state_dict(torch.load('../snapshots/17-05-2022_01:44:55_1000dist_large_dataset.pth'))
+model.load_state_dict(torch.load('../snapshots/18-05-2022_10:29:10.pth'))
 model.eval()
 
 # Print model's state_dict

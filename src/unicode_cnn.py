@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from mvmf_layer import MvMFLayer
 
 NUM_COUNTRY_CODES = 19  # 247 country codes defined by Twitter API, 19 in dataset
-NUM_VMF_DISTRIBUTIONS = 1000
+NUM_VMF_DISTRIBUTIONS = 5000
 
 
 class UnicodeCNN(nn.Module):
@@ -75,6 +75,6 @@ class UnicodeCNN(nn.Module):
         country_prediction_raw_scores = self.fc5(mixed_features)
 
         # Task 2: MvMF layer (this goes to a MvMF loss)
-        mvmf_score = self.mvmf(mixed_features, euclidean_coordinates)
+        mvmf_score, vmf_weights = self.mvmf(mixed_features, euclidean_coordinates)
 
-        return country_prediction_raw_scores, language_prediction_raw_scores, mvmf_score
+        return country_prediction_raw_scores, language_prediction_raw_scores, mvmf_score, vmf_weights

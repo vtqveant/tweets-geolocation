@@ -3,7 +3,7 @@ import torch
 
 import character_encoder
 from character_encoder import CharacterEncoder
-from geometry import to_euclidean
+from geometry import to_euclidean, to_geographical
 from unicode_cnn import UnicodeCNN
 
 
@@ -11,6 +11,36 @@ from unicode_cnn import UnicodeCNN
 def convert_unicode_features_to_tensor(matrix):
     """a matrix is actually a list of bytestring consisting of b'0' and b'1', so we need to offset by 48"""
     return torch.transpose(torch.tensor([[float(i - 48) for i in s] for s in matrix], dtype=torch.float32), 0, 1)
+
+
+def predict_coord_center_of_mass(model, text_batch):
+    """
+    Computes a center of masses of top-3 $\\mu$-s of an MvMF layer using vMF weights computed for the text.
+    """
+
+    # 1. extract $\\mu$
+    mu = model.get_parameter('mvmf.mu').detach()
+
+    # 2. unicode encoder
+    encoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
+    unicode_features = torch.stack([convert_unicode_features_to_tensor(encoder.encode(t)) for t in text_batch])
+
+    # 3. predict w.r.t. to dummy coordinates 'cause vMF weights do not depend on coordinates
+    model.eval()
+    with torch.no_grad():
+        dummy_coordinates = torch.zeros([len(text_batch), 3])
+        _, _, score, vmf_weights = model(unicode_features, dummy_coordinates)
+
+    result = []
+    weights = vmf_weights.detach().numpy()
+    for w in weights:
+        indices = np.argpartition(w, -3)[-3:]
+        top3_weights = w[indices]
+        top3_mu = mu[indices]
+        center_of_mass = np.average(top3_mu, axis=0, weights=top3_weights)
+        result.append(center_of_mass)
+
+    return result
 
 
 def predict_coord_grid_search(snapshot, text, num_lat_samples, num_lon_samples):
@@ -50,11 +80,9 @@ def predict_coord_grid_search(snapshot, text, num_lat_samples, num_lon_samples):
 
 
 def main():
-    results = predict_coord_grid_search(
-        '../snapshots/17-05-2022_01:44:55_1000dist_large_dataset.pth',
-        '😉😁 “La vida es un viaje y quien viaja vive dos veces”.  – Omar Khayyam https://t.co/TPvK5BYZ2x;1429968360448610313',
-        num_lat_samples=100,
-        num_lon_samples=100
+    results = predict_coord_center_of_mass(
+        '../snapshots/19-05-2022_09:59:01.pth',
+        '😉😁 “La vida es un viaje y quien viaja vive dos veces”.  – Omar Khayyam https://t.co/TPvK5BYZ2x;1429968360448610313'
     )
     print(results)
 

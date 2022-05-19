@@ -179,9 +179,9 @@ def main():
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
     )
-    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)
+    train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker, shuffle=True)
     train_loader = DataLoader(train_dataset, **train_kwargs)
-    test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
+    test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker, shuffle=False)
     test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
