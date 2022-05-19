@@ -13,9 +13,9 @@ class MvMFLayer(nn.Module):
     def __init__(self, in_features, num_distributions):
         super().__init__()
         self.kappa = nn.Parameter(torch.Tensor(num_distributions))
-        self.mu = nn.Parameter(
-            torch.Tensor(num_distributions, 3))  # each mu must be of length 1, i.e. $||\mu_i||_2 = 1$
         self.fc1 = nn.Linear(in_features=in_features, out_features=num_distributions)
+        self.mu = nn.Parameter(torch.Tensor(num_distributions, 3))  # each mu must be of length 1, i.e. $||\mu_i||_2 = 1$
+        self.mu.requires_grad = False  # cities are fixed
 
     def forward(self, weights, euclidean_coord):
         weights = self.fc1(weights)

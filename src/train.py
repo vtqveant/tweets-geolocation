@@ -88,7 +88,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         mvmf_loss = MvMF_loss(mvmf_output, target)
 
         # combined loss
-        combined_output = torch.mean(torch.stack([language_prediction_loss, country_prediction_loss, mvmf_loss]))
+        combined_output = 0.1 * language_prediction_loss + 0.1 * country_prediction_loss + mvmf_loss
         zero = torch.zeros_like(combined_output).to(device)
         loss = F.mse_loss(combined_output, zero)
 
@@ -99,7 +99,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
 
         # all mean directions ($\mu$) of component MvMF distributions must stay on the unit sphere
         # (cities don't fly away)
-        model.apply(unit_norm_mu_clipper)
+        # model.apply(unit_norm_mu_clipper)
 
         optimizer.step()
 
@@ -181,8 +181,8 @@ def main():
     )
     train_dataset = IncaTweetsDataset(path='../splits/train', label_tracker=label_tracker)
     train_loader = DataLoader(train_dataset, **train_kwargs)
-    test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
-    test_loader = DataLoader(test_dataset, **test_kwargs)
+    # test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker)
+    # test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
     # model.load_state_dict(torch.load('../snapshots/17-05-2022_22:22:27.pth'))
