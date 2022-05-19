@@ -1,5 +1,8 @@
+"""
+Usage example for MvMFLayer
+"""
+
 import torch
-import torch.nn.functional as F
 import numpy as np
 from mvmf_layer import MvMFLayer, MvMF_loss
 from geometry import to_euclidean, to_geographical, norm2
@@ -38,14 +41,14 @@ def main():
     ]), dtype=torch.float32)
 
     # the output is (should be) the probability of these coordinates w.r.t. to MvMF given weights
-    y = model(weights, eucl_coord)
-    print('Forward pass:', y)
+    mvmf_score, vmf_weights = model(weights, eucl_coord)
+    print('Forward pass:', mvmf_score)
 
     target = torch.zeros(len(eucl_coord))
-    loss = MvMF_loss(y, target)
+    loss = MvMF_loss(mvmf_score, target)
     loss.backward()
 
-    print('MvMF result: ', y)
+    print('MvMF result: ', mvmf_score)
     print('loss: ', loss)
 
 

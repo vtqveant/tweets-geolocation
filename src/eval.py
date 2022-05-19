@@ -48,7 +48,7 @@ if __name__ == '__main__':
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
     )
-    eval_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker, shuffle=False)
+    eval_dataset = IncaTweetsDataset(path='../splits/eval', label_tracker=label_tracker, shuffle=False)
     loader = DataLoader(eval_dataset, **eval_kwargs)
 
     evaluate(loader, '../snapshots/19-05-2022_19:26:05.pth', max_batches=10)

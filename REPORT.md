@@ -29,10 +29,9 @@ the same model presented here.
 The city prediction task is performed by calculating weights of a mixture of von Mises-Fisher distributions (MvMF)
 with mean directions set to the coordinates of cities in South America, which are not modified during training. 
 
-The final prediction of a geolocation of a tweet is done by computing a center of mass of top-3 highest ranked
-cities (using computed MvMF weights as masses) in the city prediction task. Although approximate, this result 
-demonstrates a good compromise between computational cost and accuracy compared to a grid search approach, which is 
-computationally prohibitive.
+The final prediction of a geolocation of a tweet is taken to be the location of the city ranked highest 
+in the city prediction task. Although approximate, this result demonstrates a good compromise between computational 
+cost and accuracy compared to a grid search approach, which is computationally prohibitive.
 
 #### Data preparation
 
@@ -56,8 +55,8 @@ We trained on an entire training dataset with batches of size 1000 for 4 epochs 
 
 #### Evaluation results
 
-Evaluation on a held-out dataset containing 10k samples resulted in MAE 1883.017 km, which is in line 
-with the performance of the UnicodeCNN (Small) variant reported in the aforementioned paper.  
+Evaluation on a held-out dataset containing 10k samples resulted in MAE 1520.6 km, which is in line 
+with the performance of the UnicodeCNN (Small) variant reported in (Izbicki et al., 2019).  
 
 #### References
 

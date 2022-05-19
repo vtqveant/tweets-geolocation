@@ -1,9 +1,9 @@
 """
-    As the initial dataset is hugely imbalanced, and the main task for optimization is a form of classification,
-    the dataset is under-sampled to contain up to 10k entries for a particular location.
+As the initial dataset is hugely imbalanced, and the main task for optimization is a form of classification,
+the dataset is under-sampled to contain up to 10k entries for a particular location.
 
-    The resulting data contains about 3.8M records, which is then split into training and testing sets
-    in proportion 10:1 (35 resulting files go to the testing set, remaining 353 to the training set).
+The resulting data contains about 3.8M records, which is then split into training and testing sets
+in proportion 10:1 (35 resulting files go to the testing set, remaining 353 to the training set).
 """
 
 import csv

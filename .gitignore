@@ -22,4 +22,4 @@ splits/
 snapshots/
 worldcities/
 *.zip
-eda/.ipynb_checkpoints/
+preprocess/.ipynb_checkpoints/

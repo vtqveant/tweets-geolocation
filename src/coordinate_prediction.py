@@ -16,7 +16,7 @@ def convert_unicode_features_to_tensor(matrix):
 
 def predict_coord_center_of_mass(model: UnicodeCNN, texts: List[str]):
     """
-    Computes a center of mass of top-3 $\\mu$-s of an MvMF layer using vMF weights computed for the text.
+    Computes a center of mass of top-n $\\mu$-s of an MvMF layer using vMF weights computed for the text.
     """
     encoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
     unicode_features = torch.stack([convert_unicode_features_to_tensor(encoder.encode(t)) for t in texts])
@@ -30,17 +30,22 @@ def predict_coord_center_of_mass(model: UnicodeCNN, texts: List[str]):
     result = []
     weights = vmf_weights.detach().numpy()
     mu = model.get_parameter('mvmf.mu').detach()
+    top_n = 1
     for w in weights:
-        indices = np.argpartition(w, -3)[-3:]
-        weights_top3 = w[indices]
-        mu_top3 = mu[indices]
-        center_of_mass = np.average(mu_top3, axis=0, weights=weights_top3)
+        indices = np.argpartition(w, -top_n)[-top_n:]
+        weights_top_n = w[indices]
+        mu_top_n = mu[indices]
+        center_of_mass = np.average(mu_top_n, axis=0, weights=weights_top_n)
         result.append(center_of_mass)
 
     return result
 
 
 def predict_coord_grid_search(snapshot: str, text: str, num_lat_samples: int, num_lon_samples: int):
+    """
+    Computes a grid of scores for visualization
+    """
+
     # 1. define BBox for South America
     lat_min = -56.0
     lat_max = 13.0
@@ -67,7 +72,7 @@ def predict_coord_grid_search(snapshot: str, text: str, num_lat_samples: int, nu
 
             # create a batch from all points sampled from the longitude range
             coordinates = torch.stack(euclidean_coordinates)
-            _, _, score = model(features, coordinates)
+            _, _, score, _ = model(features, coordinates)
 
             # join coordinates with MvMF scores to get a list of (x, y, z, score) entries
             b = torch.cat([coordinates, torch.reshape(score, (-1, 1))], dim=1).numpy()

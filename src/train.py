@@ -75,7 +75,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         language_target = sample['lang'].to(device)
 
         optimizer.zero_grad()
-        country_prediction_output, language_prediction_output, mvmf_output = model(unicode_features, euclidean_coordinates_target)
+        country_prediction_output, language_prediction_output, mvmf_output, _ = model(unicode_features, euclidean_coordinates_target)
 
         # Task 0 - language prediction
         # In PyTorch, an input to the cross-entropy expected to contain raw, unnormalized scores for each class
