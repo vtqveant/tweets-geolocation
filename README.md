@@ -60,6 +60,7 @@ with the performance of the UnicodeCNN (Small) variant reported in (Izbicki et a
 
 #### References
 
-1. Izbicki et al., Geolocating Tweets in any Language at any Location.
-2. World Cities Database, https://simplemaps.com/data/world-cities
-3. Inca Digital Challenge #68, https://github.com/inca-digital/challenge/issues/68
+1. Izbicki et al. Geolocating Tweets in any Language at any Location. 2019. 
+2. Izbicki et al. Exploiting the Earth's Spherical Geometry to Geolocate Images. 2019.
+3. World Cities Database, https://simplemaps.com/data/world-cities
+4. Inca Digital Challenge, https://github.com/inca-digital/challenge/issues/68
