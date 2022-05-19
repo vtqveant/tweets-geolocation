@@ -78,6 +78,8 @@ def train(args, model, device, train_loader, optimizer, epoch):
         country_prediction_output, language_prediction_output, mvmf_output = model(unicode_features, euclidean_coordinates_target)
 
         # Task 0 - language prediction
+        # In PyTorch, an input to the cross-entropy expected to contain raw, unnormalized scores for each class
+        # (no need to apply softmax before the cross-entropy)
         language_prediction_loss = F.cross_entropy(language_prediction_output, language_target, reduction='mean')
 
         # Task 1 - country prediction

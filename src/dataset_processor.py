@@ -73,7 +73,6 @@ class FileProcessor:
         return self._process(path, filename)
 
     def _process(self, path, filename) -> List:
-        # coord = FileProcessor._parse_coordinates(filename)
         entries: List = []
         with open(join(path, filename), newline='') as f:
             # read an entire file to a list and process rows in parallel to improve throughput
@@ -92,13 +91,6 @@ class FileProcessor:
         encoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
         return row['text'], encoder.encode(row['text']), row['lang'], row['geo_country_code'], row['lat'], row['lon']
 
-    # @staticmethod
-    # def _parse_coordinates(filename):
-    #     idx = filename.find('_')
-    #     lat = filename[0:idx]
-    #     lon = filename[idx + 1:filename.find('.csv')]
-    #     return Coordinate(lat, lon)
-
 
 class TrainingExample:
     def __init__(self, text: str, matrix: List[List[str]], lang: str, geo_country_code: str, lat: str, lon: str):
@@ -107,22 +99,3 @@ class TrainingExample:
         self.lang = lang
         self.geo_country_code = geo_country_code
         self.coord = Coordinate(lat, lon)
-
-
-def main():
-    label_tracker = FileLabelTracker(
-        languages_filename='inca_dataset_langs.json',
-        country_codes_filename='inca_dataset_geo_country_codes.json'
-    )
-    dataset = IncaTweetsDataset(path='../data', label_tracker=label_tracker)
-    # train_set = [x for _, x in zip(range(10), dataset)]
-    # print(train_set)
-
-    train_set = [x for _, x in zip(range(10), torch.utils.data.DataLoader(dataset, num_workers=0))]
-    # train_set = [x for x in torch.utils.data.DataLoader(dataset, num_workers=0)]
-    # print(len(dataset))
-    print(train_set)
-
-
-if __name__ == '__main__':
-    main()

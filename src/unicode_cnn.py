@@ -56,11 +56,10 @@ class UnicodeCNN(nn.Module):
         x = self.maxpool3(x)
         x = torch.flatten(x, start_dim=1)
 
-        # language estimator
+        # Task 1: language estimator
         t = self.fc1(x)
         t = F.relu(t)
         language_prediction_raw_scores = self.fc2(t)
-        # t = F.softmax(lang_pred_raw_scores, dim=1)
 
         # feature mixing
         q = torch.cat((x, language_prediction_raw_scores), 1)
@@ -69,12 +68,10 @@ class UnicodeCNN(nn.Module):
         q = self.fc4(q)
         mixed_features = F.relu(q)
 
-        # Task 1: country prediction (this goes to a cross-entropy loss)
-        # In PyTorch, the input is expected to contain raw, unnormalized scores for each class, so softmax
-        # after y1 is not needed
+        # Task 2: country prediction (this goes to a cross-entropy loss)
         country_prediction_raw_scores = self.fc5(mixed_features)
 
-        # Task 2: MvMF layer (this goes to a MvMF loss)
+        # Task 3: MvMF layer (this goes to a MvMF loss)
         mvmf_score, vmf_weights = self.mvmf(mixed_features, euclidean_coordinates)
 
         return country_prediction_raw_scores, language_prediction_raw_scores, mvmf_score, vmf_weights

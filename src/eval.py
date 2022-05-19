@@ -9,23 +9,26 @@ from label_tracker import FileLabelTracker
 from unicode_cnn import UnicodeCNN
 
 
-def evaluate(test_loader, snapshot):
+def evaluate(data_loader: DataLoader, snapshot: str, max_batches: int):
+    """Computes an average distance between true and predicted coordinates using Vincenty distance algorithm."""
     model = UnicodeCNN()
     model.load_state_dict(torch.load(snapshot))
     model.eval()
 
     distances = []
-    for batch in test_loader:
+    for i, batch in enumerate(data_loader):
+        if i == max_batches:
+            break
+
         text = batch['text']
         true_coordinates = map(to_geographical, batch['coordinates'])
 
         result = predict_coord_center_of_mass(model, text)
-        prediction_coordinates = map(to_geographical, result)
+        predicted_coordinates = map(to_geographical, result)
 
-        batch_distances = [vincenty(t, p) for t, p in zip(true_coordinates, prediction_coordinates)]
-        print(batch_distances)
-
+        batch_distances = [vincenty(t, p) for t, p in zip(true_coordinates, predicted_coordinates)]
         distances.extend(batch_distances)
+        print('{:.0f}% done'.format(100.0 * (i + 1) / max_batches))
 
     average_distance = sum(distances) / len(distances)
     print('\nMAE (km): {:.4f}\n'.format(average_distance))
@@ -36,16 +39,16 @@ if __name__ == '__main__':
     device = torch.device("cuda" if use_cuda else "cpu")
     print(f"Using {device} device")
 
-    test_kwargs = {'batch_size': 100}
+    eval_kwargs = {'batch_size': 1000}
     if use_cuda:
         cuda_kwargs = {'num_workers': 0, 'pin_memory': True, 'shuffle': False}
-        test_kwargs.update(cuda_kwargs)
+        eval_kwargs.update(cuda_kwargs)
 
     label_tracker = FileLabelTracker(
         languages_filename='inca_dataset_langs.json',
         country_codes_filename='inca_dataset_geo_country_codes.json'
     )
-    test_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker, shuffle=False)
-    test_loader = DataLoader(test_dataset, **test_kwargs)
+    eval_dataset = IncaTweetsDataset(path='../splits/test', label_tracker=label_tracker, shuffle=False)
+    loader = DataLoader(eval_dataset, **eval_kwargs)
 
-    evaluate(test_loader, '../snapshots/19-05-2022_09:59:01.pth')
+    evaluate(loader, '../snapshots/19-05-2022_13:57:46.pth', max_batches=10)
