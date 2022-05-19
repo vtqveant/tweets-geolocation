@@ -11,8 +11,8 @@ using Vincenty's distance formula).
 
 #### Model description
 
-The model is a rather straightforward implementation of a UnicodeCNN architecture from (Izbicki et al., 2019), 
-done in PyTorch from scratch. Some adjustments of the initial architecture were introduced
+The model is a rather straightforward implementation of a UnicodeCNN architecture from (Izbicki et al. Geolocating 
+Tweets... 2019), done in PyTorch from scratch. Some adjustments of the initial architecture were introduced
 in order to take advantage of the properties of the dataset. 
 
 The model is a character-level CNN-based classifier, trained in a multi-task regime for:
@@ -56,7 +56,7 @@ We trained on an entire training dataset with batches of size 1000 for 4 epochs 
 #### Evaluation results
 
 Evaluation on a held-out dataset containing 10k samples resulted in MAE 1520.6 km, which is in line 
-with the performance of the UnicodeCNN (Small) variant reported in (Izbicki et al., 2019).  
+with the performance of the UnicodeCNN (Small) variant reported in (Izbicki et al., Geolocating Tweets... 2019).  
 
 #### References
 
