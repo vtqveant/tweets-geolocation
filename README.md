@@ -30,6 +30,8 @@ the same model presented here.
 The city prediction task is performed by calculating weights of a mixture of von Mises-Fisher distributions (MvMF)
 with mean directions set to the coordinates of cities in South America, which are not modified during training. 
 
+![alt Example of MvMF distribution](MvMF.png "Example of MvMF distribution")
+
 The final prediction of a geolocation of a tweet is taken to be the location of the city ranked highest 
 in the city prediction task. Although approximate, this result demonstrates a good compromise between computational 
 cost and accuracy compared to a grid search approach, which is computationally prohibitive.
@@ -38,11 +40,9 @@ cost and accuracy compared to a grid search approach, which is computationally p
 
 As a classifier, the model proved highly susceptible to the class imbalance present in the dataset. To mitigate that,
 at least to some extent, the dataset was under-sampled to contain at most 10k samples from any given location. No 
-data cleaning was attempted. The data for the model were obtained from a preprocessed textual 
-collection containing only tweet's text, language, country code, and geographical coordinates from the original
-data provided by the organizers. Additionally, shuffling of samples, chunking in files of size of 10k samples and 
-splitting the set of files into training, testing and evaluation datasets in proportion 10:1:1 was done. 
-The resulting training dataset contained approx 3.5M entries.     
+data cleaning was attempted. For the training dataset, samples were shuffled and written to files of size 10k samples.
+Thus, the final training dataset contained approx. 3.5M entries. A small portion of samples was held out for evaluation
+and was not used for training.     
 
 #### Training procedure
 
@@ -51,12 +51,12 @@ tasks with weights 0.1 for language and country prediction tasks and 1.0 for a M
 with learning rate 10e-4 and L2 regularization implemented with a PyTorch optimizer's weight decay 10e-5.
 Additionally, gradient clipping with max norm 4.0 was done. Unicode encoding was done in parallel on CPU and 
 optimization was performed on GPU. Hyperparameter fine-tuning was done manually, we report the best performing model.
-We trained with batches of size 1000 for 7 epochs using an 8-core Intel i7-3770 box (16Gb RAM, SSD) with 
-GeForce 1050Ti 4Gb, which took approx. 31.5 hours.  
+We trained with batches of size 1000 for 8 epochs using an 8-core Intel i7-3770 box (16Gb RAM, SSD) with 
+GeForce 1050Ti 4Gb, which took approx. 36 hours. 
 
 #### Evaluation results
 
-Evaluation on a held-out dataset containing 10k samples resulted in MAE 1479.12 km, which is in line 
+Evaluation on a held-out dataset containing 10k samples resulted in MAE 1586.01 km, which is in line 
 with the performance of the UnicodeCNN (Small) variant reported in (Izbicki et al., Geolocating Tweets... 2019).  
 
 #### References
