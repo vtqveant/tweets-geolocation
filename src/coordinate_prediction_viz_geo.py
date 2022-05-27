@@ -30,7 +30,6 @@ def main():
     results = predict_coord_grid_search(
         '../snapshots/weights.pth',
         '04146314877 en Maracaibo Edo. Zulia .venezuela https://t.co/1bycYwx9pU',
-        # '@isaellimaj Eu dormindo vestido o potó mijou meus países baixos imagina eu dormindo nu...Deus me livre!',
         num_lat_samples=100,
         num_lon_samples=100
     )
