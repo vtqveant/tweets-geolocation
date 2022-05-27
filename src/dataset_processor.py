@@ -40,7 +40,7 @@ class IncaTweetsDataset(IterableDataset):
             for entry in entries:
                 yield {
                     "text": entry.text,
-                    "matrix": self._to_tensor(entry.matrix),
+                    "matrix": IncaTweetsDataset.to_tensor(entry.matrix),
                     "coordinates": torch.tensor(to_euclidean(entry.coord.lat, entry.coord.lon), dtype=torch.float32),
                     "lang": self._label_tracker.get_language_index(entry.lang),
                     "geo_country_code": self._label_tracker.get_country_index(entry.geo_country_code)
@@ -59,7 +59,7 @@ class IncaTweetsDataset(IterableDataset):
         # return self._num_samples
 
     @staticmethod
-    def _to_tensor(matrix):
+    def to_tensor(matrix):
         """a matrix is actually a list of bytestring consisting of b'0' and b'1', so we need to offset by 48"""
         return torch.transpose(torch.tensor([[float(i - 48) for i in s] for s in matrix], dtype=torch.float32), 0, 1)
 
@@ -67,7 +67,6 @@ class IncaTweetsDataset(IterableDataset):
 class FileProcessor:
     def __init__(self):
         self.NUM_WORKERS = 8
-        pass
 
     def process(self, path, filename) -> List:
         return self._process(path, filename)

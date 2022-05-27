@@ -1,9 +1,10 @@
-# Inca Digital Challenge #68
+# Tweets Geolocation
 ### Technical Report 
 
 
 #### Task description
 
+The task and the dataset were published by Inca Digital as Challenge #68. 
 The task was to predict coordinates of a tweet given its text and some meta-information.
 The data provided contains approx. 4.5G of textual data in CSV format with geotagged tweets from South America.
 The reported result is an average divergence of predicted coordinates from true ones in kilometers (computed 
@@ -45,17 +46,17 @@ The resulting training dataset contained approx 3.5M entries.
 
 #### Training procedure
 
-We fitted the model in a multi-task regime with a combined loss of the form of a weighted sum of losses for individual 
+We fitted the model in a multi-task regime with a combined loss in the form of a weighted sum of losses for individual 
 tasks with weights 0.1 for language and country prediction tasks and 1.0 for a MvMF loss. We used an Adam optimizer 
-with a learning rate of 10e-4 and an L2 regularization implemented with a PyTorch optimizer's weight decay of 10e-5.
+with learning rate 10e-4 and L2 regularization implemented with a PyTorch optimizer's weight decay 10e-5.
 Additionally, gradient clipping with max norm 4.0 was done. Unicode encoding was done in parallel on CPU and 
 optimization was performed on GPU. Hyperparameter fine-tuning was done manually, we report the best performing model.
-We trained on an entire training dataset with batches of size 1000 for 4 epochs using an 8-core Intel i7-3770 box with
-16Gb RAM, a GeForce 1050Ti with 4Gb memory and an SSD, which took approx. 18 hours to complete.  
+We trained with batches of size 1000 for 7 epochs using an 8-core Intel i7-3770 box (16Gb RAM, SSD) with 
+GeForce 1050Ti 4Gb, which took approx. 31.5 hours.  
 
 #### Evaluation results
 
-Evaluation on a held-out dataset containing 10k samples resulted in MAE 1520.6 km, which is in line 
+Evaluation on a held-out dataset containing 10k samples resulted in MAE 1479.12 km, which is in line 
 with the performance of the UnicodeCNN (Small) variant reported in (Izbicki et al., Geolocating Tweets... 2019).  
 
 #### References

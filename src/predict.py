@@ -19,7 +19,7 @@ def predict(text):
         eval_kwargs.update(cuda_kwargs)
 
     model = UnicodeCNN()
-    model.load_state_dict(torch.load('../snapshots/weights.pth'))
+    model.load_state_dict(torch.load('../snapshots/weights_7epochs.pth'))
     model.eval()
 
     [result] = predict_coord_center_of_mass(model, [text])
@@ -28,5 +28,5 @@ def predict(text):
 
 if __name__ == '__main__':
     # 0.5094617011385917;-51.05876773901514
-    lat, lon = predict("@edsonsaless Não sei, mas que os dois fazem um casal lindo sim!!")
+    lat, lon = predict("@edsonsaless Não sei, mas que os dois fazem um casal lindo sim!! Mato ")
     print('({}, {})'.format(lat, lon))

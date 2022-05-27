@@ -187,7 +187,7 @@ def main():
     # test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    # model.load_state_dict(torch.load('../snapshots/weights.pth'))
+    model.load_state_dict(torch.load('../snapshots/weights_7epochs.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

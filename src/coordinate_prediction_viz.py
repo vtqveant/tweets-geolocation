@@ -8,8 +8,8 @@ from geometry import to_geographical
 
 def main():
     results = predict_coord_grid_search(
-        '../snapshots/weights.pth',
-        'Essa máquina é do meu irmão em Cristo @glenio.josafa @vera.corcino em Vilhena, Rondonia, Brazil',
+        '../snapshots/weights_8epochs.pth',
+        'En tus manos toda tristeza angustia desconsuelo con la fe intacta',
         num_lat_samples=100,
         num_lon_samples=100
     )
