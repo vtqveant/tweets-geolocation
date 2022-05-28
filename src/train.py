@@ -128,8 +128,8 @@ def main():
                         help='input batch size for testing (default: 100)')
     parser.add_argument('--epochs', type=int, default=3, metavar='N',
                         help='number of epochs to train (default: 3)')
-    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
-                        help='learning rate (default: 0.001)')
+    parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',
+                        help='learning rate (default: 0.0001)')
     parser.add_argument('--clip', type=float, default=4.0, metavar='CL',
                         help='max_norm (clipping threshold) (default: 4.0)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -187,7 +187,7 @@ def main():
     # test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    model.load_state_dict(torch.load('../snapshots/weights_7epochs.pth'))
+    # model.load_state_dict(torch.load('../snapshots/weights_7epochs.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

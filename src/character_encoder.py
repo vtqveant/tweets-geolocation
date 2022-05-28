@@ -2,6 +2,8 @@ import sys
 import unicodedata
 from unidecode import unidecode
 
+from encoding_cache import CharacterEncodingCache
+
 ENCODING_SIZE_SMALL = 128
 ENCODING_SIZE_LARGE = 128
 ENCODING_SIZE_HUGE = 256
@@ -32,6 +34,7 @@ class CharacterEncoder:
             print("WARNING: sys.maxunicode <= 0xffff")
 
         self.d = d
+        self._cache = CharacterEncodingCache(maxsize=50000)
 
     def encode(self, text):
         rows = []
@@ -45,7 +48,10 @@ class CharacterEncoder:
             length = len(transliteration)
             for i in range(length):
                 first_letter = (i == 0)
-                row = self._encode(category, character, transliteration[i], first_letter)
+                row = self._cache.get((category, character, transliteration[i], first_letter))
+                if row is None:
+                    row = self._encode(category, character, transliteration[i], first_letter)
+                    self._cache.put((category, character, transliteration[i], first_letter), row)
                 rows.append(row)
 
         # make sure the matrix has NUM_ROWS

@@ -5,7 +5,6 @@ from os.path import isfile, join
 import csv
 import random
 from typing import List
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import character_encoder
 from character_encoder import CharacterEncoder
@@ -66,7 +65,7 @@ class IncaTweetsDataset(IterableDataset):
 
 class FileProcessor:
     def __init__(self):
-        self.NUM_WORKERS = 8
+        self._encoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
 
     def process(self, path, filename) -> List:
         return self._process(path, filename)
@@ -74,21 +73,17 @@ class FileProcessor:
     def _process(self, path, filename) -> List:
         entries: List = []
         with open(join(path, filename), newline='') as f:
-            # read an entire file to a list and process rows in parallel to improve throughput
-            # at the expense of memory consumption
-            rows = [row for row in csv.DictReader(f, delimiter=';')]
-            with ThreadPoolExecutor(max_workers=self.NUM_WORKERS) as executor:
-                futures = [executor.submit(FileProcessor._encode, row) for row in rows]
-                for future in as_completed(futures):
-                    text, matrix, lang, geo_country_code, lat, lon = future.result()
-                    training_example = TrainingExample(text, matrix, lang, geo_country_code, lat, lon)
-                    entries.append(training_example)
+            for row in csv.DictReader(f, delimiter=';'):
+                training_example = TrainingExample(
+                    row['text'],
+                    self._encoder.encode(row['text']),
+                    row['lang'],
+                    row['geo_country_code'],
+                    row['lat'],
+                    row['lon']
+                )
+                entries.append(training_example)
         return entries
-
-    @staticmethod
-    def _encode(row):
-        encoder = CharacterEncoder(character_encoder.ENCODING_SIZE_SMALL)
-        return row['text'], encoder.encode(row['text']), row['lang'], row['geo_country_code'], row['lat'], row['lon']
 
 
 class TrainingExample:
