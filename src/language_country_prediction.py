@@ -6,7 +6,7 @@ from label_tracker import FileLabelTracker
 from unicode_cnn import UnicodeCNN
 
 model = UnicodeCNN()
-model.load_state_dict(torch.load('../snapshots/weights_7epochs.pth'))
+model.load_state_dict(torch.load('../snapshots/weights.pth'))
 model.eval()
 
 test_kwargs = {'batch_size': 10}

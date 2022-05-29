@@ -1,8 +1,7 @@
 import sys
 import unicodedata
 from unidecode import unidecode
-
-from encoding_cache import CharacterEncodingCache
+from cachetools import LFUCache
 
 ENCODING_SIZE_SMALL = 128
 ENCODING_SIZE_LARGE = 128
@@ -23,7 +22,9 @@ class CharacterEncoder:
     # s. https://planetmath.org/goodhashtableprimes
     LARGE_PRIME = 98317
 
-    def __init__(self, d):
+    CACHE_SIZE = 30000
+
+    def __init__(self, d, use_cache=True):
         if d not in [ENCODING_SIZE_SMALL, ENCODING_SIZE_LARGE, ENCODING_SIZE_HUGE]:
             raise ValueError("Unsupported encoding size")
 
@@ -34,7 +35,8 @@ class CharacterEncoder:
             print("WARNING: sys.maxunicode <= 0xffff")
 
         self.d = d
-        self._cache = CharacterEncodingCache(maxsize=50000)
+        self._use_cache = use_cache
+        self._cache = LFUCache(maxsize=CharacterEncoder.CACHE_SIZE)
 
     def encode(self, text):
         rows = []
@@ -48,10 +50,15 @@ class CharacterEncoder:
             length = len(transliteration)
             for i in range(length):
                 first_letter = (i == 0)
-                row = self._cache.get((category, character, transliteration[i], first_letter))
-                if row is None:
+                if self._use_cache:
+                    key = (category, character, transliteration[i], first_letter)
+                    if key in self._cache.keys():
+                        row = self._cache[key]
+                    else:
+                        row = self._encode(category, character, transliteration[i], first_letter)
+                        self._cache[key] = row
+                else:
                     row = self._encode(category, character, transliteration[i], first_letter)
-                    self._cache.put((category, character, transliteration[i], first_letter), row)
                 rows.append(row)
 
         # make sure the matrix has NUM_ROWS

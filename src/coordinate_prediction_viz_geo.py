@@ -2,7 +2,7 @@ import math
 
 from plotly.graph_objs import Layout
 from plotly import offline
-from coordinate_prediction import predict_coord_grid_search
+from coordinate_prediction import Predictor
 from geometry import to_geographical
 
 
@@ -27,11 +27,12 @@ def plot(lats, lons, scores):
 
 
 def main():
-    results = predict_coord_grid_search(
+    predictor = Predictor()
+    results = predictor.predict_coord_grid_search(
         '../snapshots/weights.pth',
-        '04146314877 en Maracaibo Edo. Zulia .venezuela https://t.co/1bycYwx9pU',
-        num_lat_samples=100,
-        num_lon_samples=100
+        '*#19Feb-* La Alcaldía Bolivariana del municipio Bermúdez, liderada por Nircia Villegas, a través de la Dirección de Infraestructura',
+        num_lat_samples=60,
+        num_lon_samples=60
     )
 
     lats, lons, scores = [], [], []

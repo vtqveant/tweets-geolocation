@@ -122,8 +122,8 @@ def train(args, model, device, train_loader, optimizer, epoch):
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='UnicodeCNN + MvMF')
-    parser.add_argument('--batch-size', type=int, default=400, metavar='N',
-                        help='input batch size for training (default: 400)')
+    parser.add_argument('--batch-size', type=int, default=600, metavar='N',
+                        help='input batch size for training (default: 600)')
     parser.add_argument('--test-batch-size', type=int, default=100, metavar='N',
                         help='input batch size for testing (default: 100)')
     parser.add_argument('--epochs', type=int, default=3, metavar='N',
@@ -187,7 +187,7 @@ def main():
     # test_loader = DataLoader(test_dataset, **test_kwargs)
 
     # start where we ended last time
-    # model.load_state_dict(torch.load('../snapshots/weights_7epochs.pth'))
+    # model.load_state_dict(torch.load('../snapshots/weights.pth'))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

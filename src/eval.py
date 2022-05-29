@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from vincenty import vincenty
 
-from coordinate_prediction import predict_coord_center_of_mass
+from coordinate_prediction import Predictor
 from dataset_processor import IncaTweetsDataset
 from geometry import to_geographical
 from label_tracker import FileLabelTracker
@@ -15,6 +15,8 @@ def evaluate(data_loader: DataLoader, snapshot: str, max_batches: int):
     model.load_state_dict(torch.load(snapshot))
     model.eval()
 
+    predictor = Predictor()
+
     distances = []
     for i, batch in enumerate(data_loader):
         if i == max_batches:
@@ -23,7 +25,7 @@ def evaluate(data_loader: DataLoader, snapshot: str, max_batches: int):
         text = batch['text']
         true_coordinates = map(to_geographical, batch['coordinates'])
 
-        result = predict_coord_center_of_mass(model, text)
+        result = predictor.predict_coord_center_of_mass(model, text)
         predicted_coordinates = map(to_geographical, result)
 
         batch_distances = [vincenty(t, p) for t, p in zip(true_coordinates, predicted_coordinates)]
